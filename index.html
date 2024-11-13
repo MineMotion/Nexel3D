@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Programa 3D</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/styles.css">
+  
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <!-- Three IK -->
+  <script src="https://cdn.jsdelivr.net/npm/three-ik@latest"></script>
+  
+  <!-- Subdivision surface -->
+  <script src="https://cdn.jsdelivr.net/npm/three-subdivision-modifier@0.1.2/dist/three-subdivision-modifier.js"></script>
+  
+  <!-- Tween js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+  
+  <!-- Three.js Controls and Loaders -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/postprocessing/OutlinePass.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/postprocessing/EffectComposer.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/postprocessing/RenderPass.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.19.0"></script>
+  
+  <!-- Pickr (Color Picker) -->
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr@1.8.0/dist/themes/classic.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr@1.8.0/dist/pickr.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+</head>
+
+<body>
+  <!-- Escena 3D -->
+  <div id="container"></div>
+  
+  <!-- Top Bar -->
+  <div id="topbar">
+    
+    <button onclick="showMenu('addMenu')">Add</button>
+    
+    <button type="submit" onclick="showMenu('object-properties')">Props</button>
+
+    
+    <button onclick="showMenu('outlinerDiv'), updateOutliner()">Outliner</button>
+    
+  
+    <button onclick="showMenu('sceneMenu')">Escena</button>
+    
+    <button onclick="showMenu('configsMenu')">Configs</button>
+    
+  </div>
+  
+    <!-- Add Menu Principal -->
+  <div id="addMenu" class="primary-menu">
+    
+    <h3>Add Object</h3>
+
+    <div class="menu-item" onclick="showMenu('meshMenu')">Mesh</div>
+
+    <div class="menu-item" onclick="showMenu('lightMenu')">Light</div>
+
+    <div class="menu-item" onclick="showMenu('lineMenu')">Line</div>
+    
+    <hr>
+    
+    <div id="importBtn" onclick="hide()" class="menu-item">Import</div>
+    <input type="file" id="fileInput" accept=".gltf, .glb, .obj, .fbx" style="display: none;">
+    
+    <hr>
+
+    <div class="menu-item" onclick="showMenu('presetMenu')">Presets</div>
+
+  </div>
+
+  <!-- Mesh Menu -->
+  <div id="meshMenu" class="menu">
+    
+    <button id="x">×</button>
+
+    <h3>Mesh</h3>
+
+    <div class="menu-item" onclick="addCube(), hide()">Cube</div>
+
+    <div class="menu-item" onclick="addSphere(), hide()">Sphere</div>
+
+    <div class="menu-item" onclick="addPlane(), hide()">Plane</div>
+
+    <hr>
+
+  </div>
+
+  <!-- Light Menu -->
+  <div id="lightMenu" class="menu">
+    
+    <button id="x">×</button>
+
+    <h3>Light</h3>
+
+    <div class="menu-item" onclick="addPointLight(), hide()">Point</div>
+
+    <div class="menu-item" onclick="addDirectionalLight(), hide()">Directional</div>
+
+    <div class="menu-item" onclick="addSpotLight(), hide()">Spot</div>
+
+    <hr>
+
+  </div>
+
+  <!-- Line Menu -->
+  <div id="lineMenu" class="menu">
+    
+   <button id="x">×</button>
+
+    <h3>Line</h3>
+
+    <div class="menu-item" onclick="addLine(), hide()">Line</div>
+
+    <div class="menu-item" onclick="addCurve(), hide()">Curve</div>
+
+    <div class="menu-item" onclick="addThickLine(), hide()">Thick</div>
+
+    <hr>
+
+  </div>
+
+  <!-- Presets Menu -->
+  <div id="presetMenu" class="menu">
+    
+    <button id="x">×</button>
+    
+    <h3>Prefabs</h3>
+    
+  </div>
+  
+  
+  
+  <!-- Scene Menu -->
+  <div id="sceneMenu" class="menu">
+    
+    <button id="x">×</button>
+    
+    <h3>Scene View</h3>
+    
+    <h4>Graphics</h4>
+    
+    <hr>
+  
+    <label><input disabled checked type="checkbox" id="shadowToggle"> Sombras</label>
+    
+    <br>
+    
+    <label><input checked type="checkbox" id="lightingToggle"> Iluminación</label>
+    
+    
+    <br>
+    
+    <label><input checked type="checkbox" id="texturesToggle"> Texturas</label>
+    
+    <br>
+
+    <label><input type="checkbox" id="reflectionsToggle"> Reflejos</label>
+    
+    <br>
+
+    <label><input type="checkbox" id="aOToggle"> AO (Oclusión ambiental)</label>
+    
+    <br>
+    
+    <h4>Helper</h4>
+    
+    <hr>
+    
+    <label><input checked type="checkbox" id="gridToggle"> Grid</label>
+    
+    <br>
+    
+    <label><input checked type="checkbox" id="axesToggle"> Ejes</label>
+    
+    <br>
+    
+    <label><input type="checkbox" id="wireframeToggle"> Wireframe</label>
+    
+    <br>
+    
+    <label><input type="checkbox" id="skeletonToggle"> Esqueleto</label>
+    
+    <br>
+    
+    <h4>UI</h4>
+    
+    <hr>
+    
+    <label><input checked type="checkbox" id="countersToggle"> Counters</label>
+    
+    <br>
+    
+    <label><input checked type="checkbox" id="fullHdToggle"> Full HD </label>
+</div>
+  
+  
+  
+  <!-- Configs Menu Principal -->
+  <div id="configsMenu" class="primary-menu">
+  
+  <button id="x">×</button>
+   
+  <h3>Configs</h3>
+
+  <div class="menu-item" onclick="showMenu('addonMenu')">Addons</div>
+
+  <div class="menu-item" onclick="showMenu('themeMenu')">Themes</div>
+
+  <hr>
+  
+  <button id="guardarProyecto">Guardar Proyecto</button>
+  
+  <div id="savedProjects"></div>
+  
+  <hr />
+  
+  <div id="module-list"></div>
+  <script>
+   function displayStoredModules() {
+     const request = indexedDB.open('modulesDB', 1);
+     request.onsuccess = function(event) {
+       const db = event.target.result;
+       const transaction = db.transaction('modules', 'readonly');
+       const store = transaction.objectStore('modules');
+       const request = store.getAll();
+       request.onsuccess = function(event) {
+         const modules = event.target.result;
+         const moduleList = document.getElementById('module-list');
+         moduleList.innerHTML = modules.map(module => `<div>${module.name}</div>`).join('');
+       };
+     };
+   }
+   displayStoredModules();
+ </script>
+
+ </div>
+ 
+  <!-- Addons Menu-->
+  <div id="addonMenu" class="menu">
+    
+    <button id="x">×</button>
+
+    <h2>Addons</h2>
+
+    <button onclick="cargarAddon()">Cargar Addon</button>
+
+    <hr>
+
+    <div id="addon-list">
+      <h3>Lista de Addons</h3>
+
+    </div>
+
+  </div>
+  
+  <!-- Theme Menu -->
+  <div id="themeMenu" class="menu">
+    
+    <button id="x">×</button>
+
+    <h2>Theme</h2>
+    <button onclick="cargarTheme()">Cargar Temas</button>
+
+    <hr>
+
+    <div id="Theme-list">
+      <h3>Lista de Temas</h3>
+    </div>
+
+  </div>
+  
+  <!-- Mode Selector -->
+  <select id="modeDropdown" onchange="changeMode()">
+    <option selected value="objectMode">Object Mode</option>
+    <option value="animationMode">Animation Mode</option>
+    <option value="riggingMode">Rigging Mode</option>
+    <option value="materialMode">Material Mode</option>
+  </select>
+  
+  <!-- Progress Bar -->
+  <div id="progressBar">
+  <p class="progress-text">Importing...</p>
+  <div id="progress"></div>
+</div>
+ 
+  <!-- Transform Controls -->
+  <div class="transformControls">
+    <button id="selectArea">Area</button>
+    <hr>
+    <button id="snap">Snap</button>
+    <button id="snapValue">0.5</button>
+    <hr>
+    <button id="pos">Pos</button>
+    <button id="rot">Rot</button>
+    <button id="scl">Scl</button>
+    <hr/>
+    <button id="cam">Cam</button>
+    <button id="lock">Lock</button>
+    <hr>
+  </div>
+  
+  <!-- Action bar -->
+  <div class="actionBar">
+    <button onclick="deleteSel()">Del</button>
+    <button onclick="duplicateSel()">Dup</button>
+    <button onclick="groupSel()">Grp</button>
+    <button onclick="hideSel()">Hid</button>
+    <hr>
+    <button onclick="renameSel()">Rnm</button>
+    <button onclick="lockSel()">Pin</button>
+    <hr>
+    <button onclick="presetSel()">Pfb</button>
+  </div>
+  
+  <!-- Counters -->
+  <div id="counterContainer">
+    
+    <!-- FPS counter -->
+  <span id="fps-label"class="counter">FPS: <span id="fps-value"></span></span>
+
+  <!-- Object counter -->
+  <span id="object-count"class="counter"></span>
+
+  <!-- Polygon counter -->
+  <div id="polygonCounter"class="counter"></div>
+  </div>
+
+  <!-- Outliner -->
+  <div id="outlinerDiv">
+  <div id="outlinerContainer"></div>
+</div>
+
+  <!-- Object Properties -->
+  <div id="object-properties">
+  <h3>Properties:</h3>
+  <div class="property">
+    <strong>Name:</strong> <input type="text" id="object-name" /><button class="actionBtn" onclick="putName()">Rename</button>
+  </div>
+  <div class="property">
+    <strong>Position:</strong>
+    X: <input type="number" id="object-position-x" step="0.1" />
+    Y: <input type="number" id="object-position-y" step="0.1" />
+    Z: <input type="number" id="object-position-z" step="0.1" />
+  </div>
+  <div class="property">
+    <strong>Rotation:</strong>
+    X: <input type="number" id="object-rotation-x" step="0.1" />
+    Y: <input type="number" id="object-rotation-y" step="0.1" />
+    Z: <input type="number" id="object-rotation-z" step="0.1" />
+  </div>
+  <div class="property">
+    <strong>Scale:</strong>
+    X: <input type="number" id="object-scale-x" step="0.1" />
+    Y: <input type="number" id="object-scale-y" step="0.1" />
+    Z: <input type="number" id="object-scale-z" step="0.1" />
+  </div>
+</div>
+
+  <!-- Material Mode -->
+  <div id="materialMode" style="display: none">
+    <div id="materialsDiv"></div>
+    <div id="materialPropertiesDiv"></div>
+  </div>
+
+  <!-- Animation Mode-->
+  <div id="animationMode" style="display: flex">
+    
+  <div id="keyframeExtraButtons">
+    <button id="copyButton">copy</button>
+    
+    <button id="clearAnimation">Clear</button>
+  </div>
+    
+  <div id="keyframeButtons">
+    <button id="pauseButton">Play</button>
+    <button id="prevButton"><</button>
+    <button id="nextButton">></button>
+    
+    <hr>
+    <div id="transitionSelector">
+      <select id="transitions">
+        <option value="linear">Linear</option>
+        <option value="smooth">Smooth</option>
+        <option value="constant">Constant</option>
+        <option value="easeIn">Ease In</option>
+        <option value="easeOut">Ease Out</option>
+        <option value="easeInOut">Ease In Out</option>
+      </select>
+    </div>
+    <hr>
+    <button id="autoKey" class="autoKey">[A]</button>
+    <button id="keyframeButton">Add</button>
+  </div>
+  
+  <div id="timelineContainer">
+    <div id="timeline"></div>
+  </div>
+  
+  </div>
+  
+  <!-- Rigging Mode -->
+  <div id="riggingMode" style="display: none">
+    <div></div>
+  </div>
+  
+</body>
+
+  <!-- Scripts -->
+  <script src="/scene.js"></script>
+  <script src="/themes.js"></script>
+  <script src="/selectionSystem.js"></script>
+  <script src="/material.js"></script>
+  <script src="/animate.js"></script>
+  <script src="/transform.js"></script>
+  <script src="/actions.js"></script>
+  <script src="/import.js"></script>
+  <script src="/transformControls.js"></script>
+  <script src="/interface.js"></script>
+  <script src="/outliner.js"></script>
+  <script src="/rigging.js"></script>
+  <script src="/addons.js"></script>
+  <script src="/sceneView.js"></script>
+  <script src="/animationSystem.js"></script>
+
+</html>
