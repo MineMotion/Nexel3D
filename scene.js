@@ -6,8 +6,26 @@ function init() {
   container = document.getElementById('container');
 
   // Crear la cámara
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(5, 5, 5);
+  
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(5, 5, 5);
+  
+  // Cambio de FOV
+  function checkOrientation() {
+  if (window.innerWidth > window.innerHeight) {
+    controls.rotateSpeed = 0.5;
+    camera.fov = 40;
+  } else {
+    camera.fov = 70;
+  }
+  camera.updateProjectionMatrix();
+  }
+
+  checkOrientation();
+
+  window.addEventListener('resize', checkOrientation);
 
   // Crear la escena
   scene = new THREE.Scene();
@@ -82,6 +100,3 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
-
-
-// FPS Counter

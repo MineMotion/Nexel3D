@@ -2,40 +2,39 @@
 function deleteSel() {
   const selectedObjects = [];
   scene.traverse((object) => {
-    if (object.userData.SelectedObject) {
+    if (object.userData.SelectedObject === true) {
       selectedObjects.push(object);
     }
   });
 
   selectedObjects.forEach((object) => {
-    if (object instanceof THREE.Mesh) {
-      if (object.edges) scene.remove(object.edges);
-      if (object.helper) scene.remove(object.helper);
+    if (object.edges) scene.remove(object.edges); // Eliminar outline si existe
+    if (object.helper) scene.remove(object.helper); // Eliminar helper si existe
+
+    if (object.parent) {
+      object.parent.remove(object);
+    } else {
       scene.remove(object);
-      object.geometry.dispose();
-      object.material.dispose();
     }
 
-    else if (object instanceof THREE.Group) {
-      scene.remove(object);
+    if (object instanceof THREE.Mesh) {
+      object.geometry?.dispose();
+      if (Array.isArray(object.material)) {
+        object.material.forEach((mat) => mat.dispose());
+      } else {
+        object.material?.dispose();
+      }
+    } else if (object instanceof THREE.Group) {
       object.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          child.material.dispose();
+          child.geometry?.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => mat.dispose());
+          } else {
+            child.material?.dispose();
+          }
         }
       });
-    }
-
-    else if (object instanceof THREE.Light) {
-      scene.remove(object);
-    }
-
-    else if (object instanceof THREE.Skeleton) {
-      scene.remove(object.bones);
-    }
-
-    else if (object instanceof THREE.Object3D) {
-      scene.remove(object);
     }
 
     transformControls.detach();
@@ -96,29 +95,39 @@ function duplicateSel() {
 function groupSel() {
   const selectedObjects = [];
   let parentObject = null;
+  const center = new THREE.Vector3();
 
   scene.traverse((object) => {
     if (object.userData.SelectedObject) {
       selectedObjects.push(object);
       parentObject = object.parent;
+      center.add(object.getWorldPosition(new THREE.Vector3()));
     }
   });
 
   const group = new THREE.Group();
-  group.name = 'NuevoGrupo';
+  group.name = 'Group';
 
   if (selectedObjects.length > 0) {
+    center.divideScalar(selectedObjects.length);
+
     selectedObjects.forEach((object) => {
-      group.add(object);
+      const localPosition = new THREE.Vector3();
+      object.getWorldPosition(localPosition);
       object.userData.SelectedObject = false;
+
+      scene.attach(object);
+      group.add(object);
+      object.position.copy(localPosition.sub(center));
     });
 
-    if (parentObject) {
-      parentObject.add(group);
-      group.position.copy(selectedObjects[0].position);
-    } else {
-      scene.add(group);
-    }
+    group.position.copy(center);
+  }
+
+  if (parentObject) {
+    parentObject.add(group);
+  } else {
+    scene.add(group);
   }
 
   updateOutliner();
@@ -135,99 +144,85 @@ function hideSel() {
 
 /* Rename */
 function renameSel() {
-  const selectedObject = scene.children.find(obj => obj.userData.SelectedObject);
+  let selectedObject = null;
+
+  // Recorre toda la jerarquía para encontrar el objeto seleccionado
+  scene.traverse((obj) => {
+    if (obj.userData.SelectedObject) {
+      selectedObject = obj;
+    }
+  });
+
   if (selectedObject) {
-    const newName = prompt('Introduce un nuevo nombre para el objeto:', selectedObject.name);
+    const newName = prompt('Introduce un nuevo nombre para el objeto:', selectedObject.name || 'Unnamed');
     if (newName && newName.trim() !== '') {
-      selectedObject.name = newName;
+      const trimmedName = newName.trim();
+
+      // Verifica si el nombre ya existe en la escena
+      let isNameTaken = false;
+      scene.traverse((obj) => {
+        if (obj.name === trimmedName && obj !== selectedObject) {
+          isNameTaken = true;
+        }
+      });
+
+      if (isNameTaken) {
+        alert(`El nombre "${trimmedName}" ya está en uso. Por favor, elige otro.`);
+        return;
+      }
+
+      selectedObject.name = trimmedName;
       updateOutliner();
     }
+  } else {
+    alert('No hay ningún objeto seleccionado para renombrar.');
   }
 }
 
 /* Lock */
+let lockIDCounter = 0;
 function lockSel() {
   const selectedObject = scene.children.find(obj => obj.userData.SelectedObject);
+  const lockButtonImage = document.getElementById('lock');
+  const lockButton = lockButtonImage.closest('button');
+
   if (selectedObject) {
-    selectedObject.userData.locked = !selectedObject.userData.locked;
+    if (!selectedObject.userData.locked) {
+      lockIDCounter++;
+      selectedObject.userData.lockID = lockIDCounter;
+      selectedObject.userData.locked = true;
 
-    selectedObject.traverse((child) => {
-      child.userData.locked = selectedObject.userData.locked;
-    });
+      selectedObject.traverse((child) => {
+        child.userData.locked = true;
+        child.userData.lockID = lockIDCounter;
+      });
 
-    if (selectedObject.userData.locked) {
       transformControls.detach();
     } else {
+      delete selectedObject.userData.lockID;
+      selectedObject.userData.locked = false;
+
+      selectedObject.traverse((child) => {
+        child.userData.locked = false;
+        delete child.userData.lockID;
+      });
+
       transformControls.attach(selectedObject);
     }
 
+    updateLockButton(selectedObject.userData.locked);
     updateOutliner();
   }
-} 
-
-/* Prefab */
-const prefabs = loadPrefabsFromLocalStorage() || [];
-
-function presetSel() {
-  const selectedObject = scene.children.find(obj => obj.userData.SelectedObject);
-  if (!selectedObject) return;
-  const prefab = selectedObject.clone();
-  prefab.userData.SelectedObject = false;
-  prefabs.push(prefab);
-  savePrefabsToLocalStorage();
-
-  const presetMenu = document.getElementById("presetMenu");
-  const presetOption = document.createElement("div");
-  const presetIndex = prefabs.length - 1;
-
-  presetOption.classList.add("submenu-option");
-  presetOption.textContent = `Preset ${prefab.name || 'Object'} ${presetIndex + 1}`;
-  presetOption.onclick = () => {
-    addPrefabToScene(presetIndex);
-    hideSubmenus();
-  };
-
-  presetMenu.appendChild(presetOption);
 }
+function updateLockButton(isLocked) {
+  const lockButtonImage = document.getElementById('lock');
+  const lockButton = lockButtonImage.closest('button');
 
-function addPrefabToScene(prefabIndex) {
-  if (prefabIndex < 0 || prefabIndex >= prefabs.length) return;
-  const prefabClone = prefabs[prefabIndex].clone();
-  prefabClone.position.set(0, 0, 0);
-  scene.add(prefabClone);
-  updateOutliner();
-}
-
-function savePrefabsToLocalStorage() {
-  const serializedPrefabs = prefabs.map(prefab => prefab.toJSON());
-  localStorage.setItem('prefabs', JSON.stringify(serializedPrefabs));
-}
-
-function loadPrefabsFromLocalStorage() {
-  const serializedPrefabs = JSON.parse(localStorage.getItem('prefabs'));
-  if (serializedPrefabs) {
-    return serializedPrefabs.map(data => new THREE.ObjectLoader().parse(data));
+  if (isLocked) {
+    lockButtonImage.src = '/icons/locked.svg';
+    lockButton.style.backgroundColor = 'var(--accent-secondary)';
+  } else {
+    lockButtonImage.src = '/icons/unlocked.svg';
+    lockButton.style.backgroundColor = '';
   }
-  return [];
 }
-
-// Cargar prefabs al iniciar la aplicación
-window.onload = () => {
-  const loadedPrefabs = loadPrefabsFromLocalStorage();
-  const presetMenu = document.getElementById("presetMenu");
-
-  loadedPrefabs.forEach((prefab, index) => {
-    const presetOption = document.createElement("div");
-    presetOption.classList.add("submenu-option");
-    presetOption.textContent = `Preset ${prefab.name || 'Object'} ${index + 1}`;
-    presetOption.onclick = () => {
-      addPrefabToScene(index);
-      hideSubmenus();
-    };
-
-    presetMenu.appendChild(presetOption);
-  });
-};
-
-
-

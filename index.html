@@ -6,7 +6,10 @@
   <title>Programa 3D</title>
 
   <!-- CSS -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/styles.css">
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="/manifest.json">
   
   <!-- Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -39,6 +42,8 @@
   
   <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.19.0"></script>
   
+  <script src="https://cdn.skypack.dev/three@0.153.0/examples/js/exporters/GLTFExporter.js"></script>
+  
   <!-- Pickr (Color Picker) -->
  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr@1.8.0/dist/themes/classic.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr@1.8.0/dist/pickr.min.js"></script>
@@ -46,6 +51,12 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+
+<!-- Incluir Prism -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
 </head>
 
 <body>
@@ -55,21 +66,22 @@
   <!-- Top Bar -->
   <div id="topbar">
     
-    <button onclick="showMenu('addMenu')">Add</button>
+    <button class="actionBtn" onclick="showMenu('addMenu')"><img src="/icons/add.svg">Add</button>
     
-    <button type="submit" onclick="showMenu('object-properties')">Props</button>
-
+    <button type="submit" onclick="showMenu('object-properties')"><img src="/icons/properties.svg">Stats</button>
     
-    <button onclick="showMenu('outlinerDiv'), updateOutliner()">Outliner</button>
+    <button onclick="showMenu('sceneMenu')"><img src="/icons/image_background.svg">View</button>
     
-  
-    <button onclick="showMenu('sceneMenu')">Escena</button>
+    <button onclick="showMenu('outlinerDiv'), updateOutliner()"><img src="/icons/outliner.svg">Outliner</button>
     
-    <button onclick="showMenu('configsMenu')">Configs</button>
+    <button id="configToggle" onclick="showMenu('configsMenu')"><img src="/icons/preferences.svg">Config</button>
     
   </div>
   
-    <!-- Add Menu Principal -->
+  
+  <div class="notification"></div>
+  
+  <!-- Add Menu Principal -->
   <div id="addMenu" class="primary-menu">
     
     <h3>Add Object</h3>
@@ -90,11 +102,13 @@
     <div class="menu-item" onclick="showMenu('presetMenu')">Presets</div>
 
   </div>
+  
+  
+  <!-- Menu Emergente -->
+  <div></div>
 
   <!-- Mesh Menu -->
   <div id="meshMenu" class="menu">
-    
-    <button id="x">×</button>
 
     <h3>Mesh</h3>
 
@@ -110,8 +124,6 @@
 
   <!-- Light Menu -->
   <div id="lightMenu" class="menu">
-    
-    <button id="x">×</button>
 
     <h3>Light</h3>
 
@@ -127,8 +139,6 @@
 
   <!-- Line Menu -->
   <div id="lineMenu" class="menu">
-    
-   <button id="x">×</button>
 
     <h3>Line</h3>
 
@@ -145,8 +155,6 @@
   <!-- Presets Menu -->
   <div id="presetMenu" class="menu">
     
-    <button id="x">×</button>
-    
     <h3>Prefabs</h3>
     
   </div>
@@ -155,8 +163,6 @@
   
   <!-- Scene Menu -->
   <div id="sceneMenu" class="menu">
-    
-    <button id="x">×</button>
     
     <h3>Scene View</h3>
     
@@ -217,18 +223,21 @@
 </div>
   
   
-  
   <!-- Configs Menu Principal -->
   <div id="configsMenu" class="primary-menu">
-  
+    
   <button id="x">×</button>
-   
+
   <h3>Configs</h3>
 
   <div class="menu-item" onclick="showMenu('addonMenu')">Addons</div>
 
   <div class="menu-item" onclick="showMenu('themeMenu')">Themes</div>
 
+  <hr>
+  
+  <button onclick="exportarEscena()">Exportar en GLTF</button>
+  
   <hr>
   
   <button id="guardarProyecto">Guardar Proyecto</button>
@@ -260,12 +269,14 @@
  
   <!-- Addons Menu-->
   <div id="addonMenu" class="menu">
-    
-    <button id="x">×</button>
 
     <h2>Addons</h2>
 
-    <button onclick="cargarAddon()">Cargar Addon</button>
+    <button onclick="cargarAddon()">Load Addon</button>
+    
+    <button onclick="codifyAddon()">< Code ></button>
+    
+    <button onclick="reloadPage()">Refresh</button>
 
     <hr>
 
@@ -278,15 +289,18 @@
   
   <!-- Theme Menu -->
   <div id="themeMenu" class="menu">
-    
-    <button id="x">×</button>
 
-    <h2>Theme</h2>
-    <button onclick="cargarTheme()">Cargar Temas</button>
+    <h2>Themes</h2>
+    
+    <button onclick="cargarTheme()">Load Themes</button>
+    
+    <button onclick="codifyTheme()">< Code ></button>
+    
+    <button onclick="reloadPage ()">Refresh</button>
 
     <hr>
 
-    <div id="Theme-list">
+    <div id="theme-list">
       <h3>Lista de Temas</h3>
     </div>
 
@@ -300,6 +314,7 @@
     <option value="materialMode">Material Mode</option>
   </select>
   
+  
   <!-- Progress Bar -->
   <div id="progressBar">
   <p class="progress-text">Importing...</p>
@@ -308,31 +323,28 @@
  
   <!-- Transform Controls -->
   <div class="transformControls">
-    <button id="selectArea">Area</button>
+    <button id="selectArea"><img src="/icons/area_select.svg"></button>
     <hr>
-    <button id="snap">Snap</button>
-    <button id="snapValue">0.5</button>
+    <button id="pos"><img src="/icons/con_loclimit.svg"></button>
+    <button id="rot"><img src="/icons/con_rotlimit.svg"></button>
+    <button id="scl"><img src="/icons/con_sizelimit.svg"></button>
     <hr>
-    <button id="pos">Pos</button>
-    <button id="rot">Rot</button>
-    <button id="scl">Scl</button>
-    <hr/>
-    <button id="cam">Cam</button>
-    <button id="lock">Lock</button>
-    <hr>
+    <button id="snap-toggle">
+  <img src="/icons/snap_off.svg" id="snap-img">
+</button>
   </div>
   
   <!-- Action bar -->
   <div class="actionBar">
-    <button onclick="deleteSel()">Del</button>
-    <button onclick="duplicateSel()">Dup</button>
-    <button onclick="groupSel()">Grp</button>
-    <button onclick="hideSel()">Hid</button>
+    <button onclick="deleteSel()"><img src="/icons/trash.svg"></button>
+    <button onclick="duplicateSel()"><img src="/icons/duplicate.svg"></button>
+    <button onclick="groupSel()"><img src="/icons/group.svg"></button>
+    <button onclick="hideSel()"><img src="/icons/hide_off.svg"></button>
     <hr>
-    <button onclick="renameSel()">Rnm</button>
-    <button onclick="lockSel()">Pin</button>
+    <button onclick="renameSel()"><img src="/icons/rename.svg"></button>
+    <button onclick="lockSel()"><img src="/icons/unlocked.svg" id="lock"></button>
     <hr>
-    <button onclick="presetSel()">Pfb</button>
+    <button onclick="presetSel()"><img src="/icons/preset_new.svg"></button>
   </div>
   
   <!-- Counters -->
@@ -350,8 +362,8 @@
 
   <!-- Outliner -->
   <div id="outlinerDiv">
-  <div id="outlinerContainer"></div>
-</div>
+    <div id="outlinerContainer"></div>
+  </div>
 
   <!-- Object Properties -->
   <div id="object-properties">
@@ -391,14 +403,20 @@
   <div id="keyframeExtraButtons">
     <button id="copyButton">copy</button>
     
+    <button id="exportButton">Export</button>
+    
+    <button id="importButton">Import</button>
+    
     <button id="clearAnimation">Clear</button>
   </div>
     
   <div id="keyframeButtons">
-    <button id="pauseButton">Play</button>
-    <button id="prevButton"><</button>
-    <button id="nextButton">></button>
+    <button id="pauseButton"></button>
+    <button id="prevButton"><img src="/icons/frame_prev.svg"></button>
+    <button id="nextButton"><img src="/icons/frame_next.svg"></button>
     
+    <hr>
+    <button id="extraAnimTools"onclick="showMenu('keyframeExtraButtons')"><img src="/icons/tria_up.svg"></button>
     <hr>
     <div id="transitionSelector">
       <select id="transitions">
@@ -411,12 +429,13 @@
       </select>
     </div>
     <hr>
-    <button id="autoKey" class="autoKey">[A]</button>
-    <button id="keyframeButton">Add</button>
+    <button id="autoKey" class="autoKey"><img src="/icons/autokey_off.svg"></button>
+    <button id="keyframeButton"><img src="/icons/keyframe.svg"></button>
   </div>
   
   <div id="timelineContainer">
     <div id="timeline"></div>
+    <div id="timeline-numbers"></div>
   </div>
   
   </div>
@@ -429,20 +448,20 @@
 </body>
 
   <!-- Scripts -->
-  <script src="scene.js"></script>
-  <script src="themes.js"></script>
-  <script src="selectionSystem.js"></script>
-  <script src="material.js"></script>
-  <script src="animate.js"></script>
-  <script src="transform.js"></script>
-  <script src="actions.js"></script>
-  <script src="import.js"></script>
-  <script src="transformControls.js"></script>
-  <script src="interface.js"></script>
-  <script src="outliner.js"></script>
-  <script src="rigging.js"></script>
-  <script src="addons.js"></script>
-  <script src="sceneView.js"></script>
-  <script src="animationSystem.js"></script>
+  <script src="/scene.js"></script>
+  <script src="/themes.js"></script>
+  <script src="/selectionSystem.js"></script>
+  <script src="/material.js"></script>
+  <script src="/animate.js"></script>
+  <script src="/transform.js"></script>
+  <script src="/actions.js"></script>
+  <script src="/import.js"></script>
+  <script src="/transformControls.js"></script>
+  <script src="/interface.js"></script>
+  <script src="/outliner.js"></script>
+  <script src="/rigging.js"></script>
+  <script src="/addons.js"></script>
+  <script src="/sceneView.js"></script>
+  <script src="/animationSystem.js"></script>
 
 </html>

@@ -1,0 +1,8 @@
+{
+  "short_name": "Nexel3D",
+  "name": "Nexel 3D",
+  "start_url": "/",
+  "display": "fullscreen",
+  "theme_color": "#000000",
+  "background_color": "#000000"
+}

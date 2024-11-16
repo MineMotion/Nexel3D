@@ -37,6 +37,14 @@ function hide() {
     });
 }
 
+/* Boton de Cerrar (×) */
+document.querySelectorAll('.menu').forEach(menu => {
+  const closeButton = document.createElement('button');
+  closeButton.id = 'x';
+  closeButton.innerHTML = '×';
+
+  menu.appendChild(closeButton);
+});
 document.querySelectorAll('button').forEach(button => {
   if (button.textContent.trim() === '×') {
     button.addEventListener('click', hide);
@@ -92,3 +100,4 @@ pickr.on('change', (color) => {
 });
 
 
+/* Transitions */

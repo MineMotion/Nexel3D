@@ -28,29 +28,39 @@ document.addEventListener('DOMContentLoaded', () => {
   let autoKeyActive = false;
   const autoKeyButton = document.getElementById('autoKey');
   autoKeyButton.addEventListener('click', () => {
-    autoKeyActive = !autoKeyActive;
-    autoKeyButton.style.color = autoKeyActive ? 'var(--accent-primary)' : '';
-  });
+  autoKeyActive = !autoKeyActive;
+
+  // Cambiar la imagen según el estado del autoKey
+  if (autoKeyActive) {
+    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe On">';
+    autoKeyButton.style.backgroundColor = 'var(--accent-secondary)';
+  } else {
+    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe Off">';
+    autoKeyButton.style.backgroundColor = ''; 
+  }
+});
 
   function updateKeyframeButtonText() {
-    const keyframeButton = document.getElementById('keyframeButton');
-    const selectedObject = getSelectedObject();
-    if (selectedObject) {
-      const keyframes = keyframesByObject.get(selectedObject) || [];
-      const isKeyframe = keyframes.some(k => k.frame === currentFrame);
-      const currentKeyframe = keyframes.find(k => k.frame === currentFrame);
-      
-      if (isKeyframe && currentKeyframe) {
-        const hasChanged = !selectedObject.position.equals(currentKeyframe.position) ||
-          !selectedObject.rotation.equals(currentKeyframe.rotation) ||
-          !selectedObject.scale.equals(currentKeyframe.scale);
+  const keyframeButton = document.getElementById('keyframeButton');
+  const selectedObject = getSelectedObject();
+  if (selectedObject) {
+    const keyframes = keyframesByObject.get(selectedObject) || [];
+    const isKeyframe = keyframes.some(k => k.frame === currentFrame);
+    const currentKeyframe = keyframes.find(k => k.frame === currentFrame);
+    
+    if (isKeyframe && currentKeyframe) {
+      const hasChanged = !selectedObject.position.equals(currentKeyframe.position) ||
+        !selectedObject.rotation.equals(currentKeyframe.rotation) ||
+        !selectedObject.scale.equals(currentKeyframe.scale);
 
-        keyframeButton.textContent = hasChanged ? 'Change' : 'Delete';
-      } else {
-        keyframeButton.textContent = 'Add';
-      }
+      keyframeButton.innerHTML = hasChanged 
+        ? '<img src="/icons/keyframe_add.svg" alt="Change">'
+        : '<img src="/icons/keyframe_add.svg" alt="Add">';
+    } else {
+      keyframeButton.innerHTML = '<img src="/icons/keyframe.svg" alt="Add">';
     }
   }
+}
   
 
   const keyframeButton = document.getElementById('keyframeButton');
@@ -162,6 +172,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     renderFrameCursor();
   }
+  
+  function addFrameNumbers() {
+  const timeline = document.getElementById('timeline');
+  const frameWidth = timeline.offsetWidth / totalFrames;
+
+  for (let i = 0; i < totalFrames; i++) {
+    if (i % 10 === 0) {
+      const number = document.createElement('div');
+      number.className = 'frame-number';
+      number.innerText = i;
+      number.style.left = `${i * frameWidth}px`;
+      timeline.appendChild(number);
+    }
+  }
+}
 
   function renderFrameCursor() {
     frameCursor.style.left = `${(currentFrame / totalFrames) * 100}%`;
@@ -234,16 +259,22 @@ document.addEventListener('DOMContentLoaded', () => {
       requestAnimationFrame(animate);
     }
   }
-
+  
+  /* Pause Button */
   const pauseButton = document.getElementById('pauseButton');
-  pauseButton.textContent = isPaused ? 'Play' : 'Pause';
+  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
   pauseButton.addEventListener('click', () => {
-    isPaused = !isPaused;
-    pauseButton.textContent = isPaused ? 'Play' : 'Pause';
-    if (!isPaused) {
-      animate();
-    }
+  isPaused = !isPaused;
+  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
+
+  if (!isPaused) {
+    pauseButton.style.backgroundColor = 'var(--accent-secondary)';
+    animate();
+  } else {
+    pauseButton.style.backgroundColor = ''
+  }
   });
+  
   
   timeline.addEventListener('click', (event) => {
     const rect = timeline.getBoundingClientRect();
@@ -335,5 +366,5 @@ function monitorObjectChanges() {
 
 monitorObjectChanges();
 renderKeyframes();
+addFrameNumbers()
 });
-

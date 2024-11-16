@@ -65,6 +65,8 @@ function seleccionarObjeto(event) {
         }
 
         objetoTocado.userData.SelectedObject = true;
+        updateLockButton();
+        updateAttachment();
         objetoSeleccionado = objetoTocado;
 
         console.log("Objeto seleccionado:", objetoTocado.name);
@@ -148,9 +150,6 @@ function updateOutlines() {
     }
   });
 }
-
-
-
 
 /* Area Selection */
 const selectAreaButton = document.getElementById('selectArea');
@@ -262,7 +261,7 @@ function onTouchEnd() {
   } else {
     console.log(`${selectedObjects.length} objetos seleccionados.`);
   }
-  
+
   stopSelectionRectangle();
   controls.enableRotate = true;
   selectAreaButton.style.backgroundColor = "";

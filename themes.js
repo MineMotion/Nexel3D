@@ -1,140 +1,245 @@
+// Abre o crea la base de datos de IndexedDB
+let db;
+const request = indexedDB.open('themeDB', 1);
+
+request.onupgradeneeded = function(event) {
+  db = event.target.result;
+  const store = db.createObjectStore('themes', { keyPath: 'name' });
+  store.createIndex('name', 'name', { unique: true });
+};
+
+request.onerror = function(event) {
+  console.error('Error abriendo la base de datos: ', event.target.error);
+};
+
+request.onsuccess = function(event) {
+  db = event.target.result;
+  cargarTemasDesdeIndexedDB(true); // Cargar y aplicar los temas al iniciar
+};
+
+// Función para cargar los temas desde archivos .css
 function cargarTheme() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.css';
+  input.multiple = true;
 
-  input.onchange = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const cssContent = e.target.result;
+  input.onchange = function(event) {
+    const files = event.target.files;
+    if (files.length > 0) {
+      for (let file of files) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const styleContent = e.target.result;
+          const themeName = file.name;
 
-        const themeDiv = document.createElement('div');
-        themeDiv.classList.add('theme-item', 'submenu-option');
+          // Guardar el tema en IndexedDB
+          saveThemeToIndexedDB(themeName, styleContent);
 
-        const themeName = document.createElement('p');
-        themeName.textContent = file.name;
-        themeDiv.appendChild(themeName);
-
-        const installButton = document.createElement('button');
-        installButton.textContent = 'Instalar';
-        themeDiv.appendChild(installButton);
-
-        const removeButton = document.createElement('button');
-        removeButton.textContent = 'Eliminar';
-        themeDiv.appendChild(removeButton);
-
-        const styleElement = document.createElement('style');
-        styleElement.textContent = cssContent;
-
-        let isInstalled = false;
-
-        installButton.onclick = () => {
-          if (!isInstalled) {
-            document.head.appendChild(styleElement); // Añadir el tema al head
-            installButton.textContent = 'Desinstalar';
-            isInstalled = true;
-            saveThemeToLocalStorage(file.name, cssContent, true);
-          } else {
-            document.head.removeChild(styleElement); // Quitar el tema del head
-            installButton.textContent = 'Instalar';
-            isInstalled = false;
-            saveThemeToLocalStorage(file.name, cssContent, false);
-          }
+          // Crear un enlace para el tema
+          createThemeElement(themeName, styleContent, false);
         };
-
-        removeButton.onclick = () => {
-          if (isInstalled) {
-            document.head.removeChild(styleElement);
-          }
-          removeThemeFromLocalStorage(file.name);
-          themeDiv.remove();
-          location.reload();
-        };
-
-        const themeList = document.getElementById('Theme-list');
-        themeList.appendChild(themeDiv); // Agregar al Theme-list
-
-        saveThemeToLocalStorage(file.name, cssContent, isInstalled);
-      };
-      reader.readAsText(file);
+        reader.readAsText(file);
+      }
     }
   };
+
   input.click();
 }
 
-function saveThemeToLocalStorage(name, cssContent, isInstalled) {
-  const themes = JSON.parse(localStorage.getItem('themes')) || [];
-  const existingThemeIndex = themes.findIndex(theme => theme.name === name);
+// Guardar tema en IndexedDB
+function saveThemeToIndexedDB(themeName, styleContent) {
+  const transaction = db.transaction(['themes'], 'readwrite');
+  const store = transaction.objectStore('themes');
+  const theme = { name: themeName, styleContent };
 
-  if (existingThemeIndex === -1) {
-    themes.push({ name, cssContent, isInstalled });
-  } else {
-    themes[existingThemeIndex] = { name, cssContent, isInstalled };
+  const request = store.put(theme);
+
+  request.onsuccess = function() {
+    console.log(`Tema "${themeName}" guardado en IndexedDB`);
+  };
+
+  request.onerror = function(event) {
+    console.error('Error guardando el tema en IndexedDB: ', event.target.error);
+  };
+}
+
+// Cargar los temas desde IndexedDB y mostrarlos en el div
+function cargarTemasDesdeIndexedDB(applyOnLoad = false) {
+  const transaction = db.transaction(['themes'], 'readonly');
+  const store = transaction.objectStore('themes');
+  const request = store.getAll();
+
+  request.onsuccess = function(event) {
+    const themes = event.target.result;
+    const themeListDiv = document.getElementById('theme-list');
+    themeListDiv.innerHTML = '<h3>Lista de Temas</h3>'; // Limpiar la lista antes de cargar
+
+    themes.forEach(theme => {
+      const isApplied = document.getElementById(`theme-${theme.name}`) !== null;
+      createThemeElement(theme.name, theme.styleContent, isApplied);
+
+      // Aplicar el primer tema o todos si `applyOnLoad` es true
+      if (applyOnLoad && !isApplied) {
+        applyTheme(theme.name, theme.styleContent);
+      }
+    });
+  };
+
+  request.onerror = function(event) {
+    console.error('Error cargando los temas desde IndexedDB: ', event.target.error);
+  };
+}
+
+// Crear el elemento visual para cada tema
+function createThemeElement(themeName, styleContent, isApplied) {
+  const themeListDiv = document.getElementById('theme-list');
+
+  // Crear un div para cada tema
+  const themeDiv = document.createElement('div');
+  themeDiv.classList.add('theme-item');
+
+  const themeTitle = document.createElement('p');
+  themeTitle.textContent = themeName;
+  themeDiv.appendChild(themeTitle);
+
+  const applyButton = document.createElement('button');
+  applyButton.textContent = isApplied ? 'Desinstalar' : 'Aplicar';
+  themeDiv.appendChild(applyButton);
+
+  const removeButton = document.createElement('button');
+  removeButton.textContent = 'Eliminar';
+  themeDiv.appendChild(removeButton);
+
+  // Evento para aplicar el tema
+  applyButton.onclick = () => {
+    if (isApplied) {
+      removeThemeFromPage(themeName);
+      removeThemeFromIndexedDB(themeName, themeDiv);
+    } else {
+      applyTheme(themeName, styleContent);
+      updateThemeButton(themeDiv, true); // Cambiar el estado del botón a 'Desinstalar'
+    }
+  };
+
+  // Evento para eliminar el tema
+  removeButton.onclick = () => {
+    removeThemeFromIndexedDB(themeName, themeDiv);
+  };
+
+  themeListDiv.appendChild(themeDiv);
+}
+
+// Aplicar un tema
+function applyTheme(themeName, styleContent) {
+  // Verificar si el tema ya está aplicado
+  const existingStyle = document.getElementById(`theme-${themeName}`);
+  if (existingStyle) {
+    existingStyle.remove();
   }
 
-  localStorage.setItem('themes', JSON.stringify(themes));
+  const styleElement = document.createElement('style');
+  styleElement.id = `theme-${themeName}`;
+  styleElement.textContent = styleContent;
+  document.head.appendChild(styleElement);
 }
 
-function loadThemesFromLocalStorage() {
-  const themes = JSON.parse(localStorage.getItem('themes')) || [];
+// Eliminar tema de la página
+function removeThemeFromPage(themeName) {
+  const themeStyle = document.getElementById(`theme-${themeName}`);
+  if (themeStyle) {
+    themeStyle.remove();
+  }
+}
 
-  themes.forEach(theme => {
-    const themeDiv = document.createElement('div');
-    themeDiv.classList.add('theme-item', 'submenu-option');
+// Eliminar el tema de IndexedDB
+function removeThemeFromIndexedDB(themeName, themeDiv) {
+  const transaction = db.transaction(['themes'], 'readwrite');
+  const store = transaction.objectStore('themes');
+  const request = store.delete(themeName);
 
-    const themeName = document.createElement('p');
-    themeName.textContent = theme.name;
-    themeDiv.appendChild(themeName);
+  request.onsuccess = function() {
+    console.log(`Tema "${themeName}" eliminado de IndexedDB`);
+    themeDiv.remove(); // Eliminar el tema de la interfaz
+    alert(`El tema "${themeName}" ha sido eliminado.`);
+  };
 
-    const installButton = document.createElement('button');
-    installButton.textContent = theme.isInstalled ? 'Desinstalar' : 'Instalar';
-    themeDiv.appendChild(installButton);
+  request.onerror = function(event) {
+    console.error('Error eliminando el tema de IndexedDB: ', event.target.error);
+  };
+}
 
-    const removeButton = document.createElement('button');
-    removeButton.textContent = 'Eliminar';
-    themeDiv.appendChild(removeButton);
+// Actualizar el botón de un tema (Aplicar <-> Desinstalar)
+function updateThemeButton(themeDiv, isApplied) {
+  const applyButton = themeDiv.querySelector('button');
+  applyButton.textContent = isApplied ? 'Desinstalar' : 'Aplicar';
+}
 
-    const styleElement = document.createElement('style');
-    styleElement.textContent = theme.cssContent;
+// Función para recargar la página
+function reloadPage() {
+  const confirmReload = confirm("¿Estás seguro de que quieres recargar la página?");
+  if (confirmReload) {
+    location.reload();
+  }
+}
 
-    if (theme.isInstalled) {
-      document.head.appendChild(styleElement);
+// Función para codificar el tema (editor de código)
+function codifyTheme() {
+  const modal = document.createElement('div');
+  modal.classList.add('modal');
+
+  const editorContainer = document.createElement('div');
+  editorContainer.classList.add('editor-container');
+
+  const textarea = document.createElement('textarea');
+  textarea.placeholder = 'Escribe el código de tu tema aquí...';
+  textarea.id = 'theme-code-input';
+
+  const buttonContainer = document.createElement('div');
+  buttonContainer.classList.add('button-container');
+
+  const saveButton = document.createElement('button');
+  saveButton.textContent = 'Guardar como .css';
+
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'Cerrar';
+
+  buttonContainer.appendChild(saveButton);
+  buttonContainer.appendChild(closeButton);
+
+  editorContainer.appendChild(textarea);
+  editorContainer.appendChild(buttonContainer);
+  modal.appendChild(editorContainer);
+
+  document.body.appendChild(modal);
+
+  closeButton.onclick = () => {
+    modal.remove();
+  };
+
+  saveButton.onclick = () => {
+    const themeCode = textarea.value;
+    if (themeCode.trim() === '') {
+      alert('El código del tema no puede estar vacío');
+      return;
     }
 
-    installButton.onclick = () => {
-      if (!theme.isInstalled) {
-        document.head.appendChild(styleElement); // Añadir el tema al head
-        installButton.textContent = 'Desinstalar';
-        theme.isInstalled = true;
-        saveThemeToLocalStorage(theme.name, theme.cssContent, true);
-      } else {
-        document.head.removeChild(styleElement); // Quitar el tema del head
-        installButton.textContent = 'Instalar';
-        theme.isInstalled = false;
-        saveThemeToLocalStorage(theme.name, theme.cssContent, false);
-      }
-    };
+    const themeName = prompt("Por favor, ingresa el nombre de tu tema:");
+    if (!themeName || themeName.trim() === '') {
+      alert("El nombre del tema es obligatorio.");
+      return;
+    }
 
-    removeButton.onclick = () => {
-      if (theme.isInstalled) {
-        document.head.removeChild(styleElement);
-      }
-      removeThemeFromLocalStorage(theme.name);
-      themeDiv.remove();
-      location.reload();
-    };
+    const blob = new Blob([themeCode], { type: 'text/css' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${themeName}.css`;
 
-    const themeList = document.getElementById('Theme-list');
-    themeList.appendChild(themeDiv); // Añadir al div de Theme-list
-  });
+    link.click();
+
+    saveThemeToIndexedDB(themeName, themeCode);
+
+    alert(`Tema "${themeName}" guardado correctamente como ${themeName}.css`);
+    modal.remove();
+  };
 }
-
-function removeThemeFromLocalStorage(name) {
-  const themes = JSON.parse(localStorage.getItem('themes')) || [];
-  const updatedThemes = themes.filter(theme => theme.name !== name);
-  localStorage.setItem('themes', JSON.stringify(updatedThemes));
-}
-
-window.onload = loadThemesFromLocalStorage;

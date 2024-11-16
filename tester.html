@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú de Opciones en Touch</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .menu {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            z-index: 100;
+        }
+
+        .menu button {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .menu button:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Evitar selección de texto */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Presiona y mantén para mostrar el menú</h1>
+    <div id="content" style="height: 100vh; background-color: #f4f4f4;">
+        <p>Haz clic y mantén el dedo en cualquier parte de la pantalla para ver el menú.</p>
+    </div>
+
+    <div id="menu" class="menu">
+        <button onclick="handleOption('Opción 1')">Opción 1</button>
+        <button onclick="handleOption('Opción 2')">Opción 2</button>
+        <button onclick="handleOption('Opción 3')">Opción 3</button>
+    </div>
+
+    <script>
+        const menu = document.getElementById('menu');
+        let touchTimeout;
+        let isMenuVisible = false;
+
+        // Muestra el menú en la posición del toque después de mantener presionado
+        document.getElementById('content').addEventListener('touchstart', (event) => {
+            event.preventDefault();  // Evita el comportamiento predeterminado (selección de texto)
+
+            const touch = event.touches[0];
+
+            // Inicia un temporizador para detectar el toque largo
+            touchTimeout = setTimeout(() => {
+                menu.style.display = 'block';
+                menu.style.left = `${touch.clientX}px`;
+                menu.style.top = `${touch.clientY}px`;
+                isMenuVisible = true;  // Marca que el menú está visible
+            }, 1000); // Muestra después de 1 segundo de mantener presionado
+        });
+
+        // Detiene el temporizador si se levanta el dedo antes del toque largo
+        document.getElementById('content').addEventListener('touchend', () => {
+            clearTimeout(touchTimeout);  // Cancela el menú si se termina el toque antes de tiempo
+        });
+
+        // Evita que el menú se cierre si se toca dentro de él
+        menu.addEventListener('touchstart', (event) => {
+            event.stopPropagation();
+        });
+
+        // Maneja el toque fuera del menú para cerrarlo
+        document.body.addEventListener('touchstart', (event) => {
+            if (isMenuVisible && !menu.contains(event.target)) {
+                menu.style.display = 'none';
+                isMenuVisible = false;
+            }
+        });
+
+        // Oculta el menú cuando se selecciona una opción
+        function handleOption(option) {
+            alert('Has seleccionado: ' + option);
+            menu.style.display = 'none'; // Oculta el menú después de seleccionar una opción
+            isMenuVisible = false;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rigging Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      color: white;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    .controls {
+      position: absolute;
+      z-index: 2;
+      padding: 10px;
+    }
+
+    .top-controls {
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .bottom-controls {
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .side-controls {
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .left-side {
+      left: 10px;
+    }
+
+    .right-side {
+      right: 10px;
+    }
+
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    input[type="range"] {
+      margin: 10px 0;
+      width: 120px;
+    }
+
+    label {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+</head>
+<body>
+  <div class="controls top-controls">
+    <button id="animateBtn">Animate Bone</button>
+    <button id="weightBtn">Paint Weights</button>
+    <button id="attachBtn">Attach Bone</button>
+  </div>
+  
+  <div class="controls bottom-controls">
+    <label for="brushSize">Brush Size</label>
+    <input type="range" id="brushSize" min="1" max="50" value="5">
+    <label for="influence">Weight Influence</label>
+    <input type="range" id="influence" min="0" max="1" step="0.01" value="0.5">
+  </div>
+
+  <div class="controls left-side side-controls">
+    <button id="resetBtn">Reset Bone</button>
+  </div>
+
+  <div class="controls right-side side-controls">
+    <button id="colorBtn">Change Color</button>
+  </div>
+
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: THREE.FaceColors });
+
+    const bone1 = new THREE.Bone();
+    const bone2 = new THREE.Bone();
+    bone2.position.set(0, 0.5, 0);
+    bone1.add(bone2);
+
+    const skeleton = new THREE.Skeleton([bone1, bone2]);
+
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+
+    geometry.setAttribute('skinIndex', new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count * 4), 1));
+    geometry.setAttribute('skinWeight', new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count * 4), 1));
+
+    const skinnedMesh = new THREE.SkinnedMesh(geometry, sphereMaterial);
+    skinnedMesh.add(bone1);
+    skinnedMesh.bind(skeleton);
+
+    scene.add(skinnedMesh);
+
+    const skeletonHelper = new THREE.SkeletonHelper(skinnedMesh);
+    scene.add(skeletonHelper);
+
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    scene.add(directionalLight);
+
+    camera.position.z = 5;
+
+    const clock = new THREE.Clock();
+    let animateBone = false;
+    let paintingWeights = false;
+    let brushSize = 5;
+    let influence = 0.5;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let isPainting = false;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (animateBone) {
+        bone2.rotation.x += 0.01;
+        bone2.rotation.y += 0.01;
+      }
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    document.getElementById('animateBtn').addEventListener('click', () => {
+      animateBone = !animateBone;
+    });
+
+    document.getElementById('weightBtn').addEventListener('click', () => {
+      paintingWeights = !paintingWeights;
+      alert(paintingWeights ? "Pincel activado." : "Pincel desactivado.");
+    });
+
+    document.getElementById('attachBtn').addEventListener('click', () => {
+      const skinWeights = geometry.attributes.skinWeight.array;
+      for (let i = 0; i < geometry.attributes.position.count; i++) {
+        const weight = Math.random() < influence ? influence : 0;
+        geometry.attributes.skinWeight.setX(i, weight);
+      }
+      geometry.attributes.skinWeight.needsUpdate = true;
+      alert("Pesos aplicados.");
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      bone1.rotation.set(0, 0, 0);
+      bone2.rotation.set(0, 0, 0);
+      alert("Hueso reseteado.");
+    });
+
+    document.getElementById('colorBtn').addEventListener('click', () => {
+      const randomColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+      sphereMaterial.color.set(randomColor);
+    });
+
+    document.getElementById('brushSize').addEventListener('input', (event) => {
+      brushSize = parseInt(event.target.value, 10);
+    });
+
+    document.getElementById('influence').addEventListener('input', (event) => {
+      influence = parseFloat(event.target.value);
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function getMousePos(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    function applyWeights() {
+      const skinWeights = geometry.attributes.skinWeight.array;
+      const positions = geometry.attributes.position.array;
+      raycaster.update();
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObject(skinnedMesh);
+
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        const radius = brushSize / 100;
+        for (let i = 0; i < positions.length; i += 3) {
+          const vertex = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+          const distance = vertex.distanceTo(point);
+          if (distance < radius) {
+            const weight = influence;
+            geometry.attributes.skinWeight.setX(i / 3, weight);
+          }
+        }
+        geometry.attributes.skinWeight.needsUpdate = true;
+      }
+    }
+
+    window.addEventListener('mousemove', (event) => {
+      getMousePos(event);
+      if (paintingWeights) {
+        applyWeights();
+      }
+    });
+
+    window.addEventListener('touchmove', (event) => {
+      getMousePos(event.touches[0]);
+      if (paintingWeights) {
+        applyWeights();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -4,8 +4,8 @@ function animate() {
   renderer.render(scene, camera);
   updateOutlines();
   listMaterials();
-  actualizarPropiedades();
-  updateAttachment();
+  //updateAttachment();
+  
 }
 
 init();
