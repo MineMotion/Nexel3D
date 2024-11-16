@@ -222,7 +222,7 @@ function updateLockButton(isLocked) {
     lockButtonImage.src = 'icons/open.svg';
     lockButton.style.backgroundColor = 'var(--accent-secondary)';
   } else {
-    lockButtonImage.src = 'icons/close.svg';
+    lockButtonImage.src = 'icons/unlocked.svg';
     lockButton.style.backgroundColor = '';
   }
 }
