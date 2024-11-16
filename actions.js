@@ -219,7 +219,7 @@ function updateLockButton(isLocked) {
   const lockButton = lockButtonImage.closest('button');
 
   if (isLocked) {
-    lockButtonImage.src = 'icons/open.svg';
+    lockButtonImage.src = 'icons/lock.svg';
     lockButton.style.backgroundColor = 'var(--accent-secondary)';
   } else {
     lockButtonImage.src = 'icons/unlocked.svg';
