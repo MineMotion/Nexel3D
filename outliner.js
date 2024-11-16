@@ -14,19 +14,19 @@ function updateOutliner() {
 
     // Asignación de imágenes según el tipo de objeto
     if (object instanceof THREE.Light) {
-      iconUrl = '/icons/light.svg';
+      iconUrl = 'icons/light.svg';
     } else if (object instanceof THREE.Camera) {
-      iconUrl = '/icons/camera.svg';
+      iconUrl = 'icons/camera.svg';
     } else if (object instanceof THREE.Mesh) {
-      iconUrl = '/icons/mesh.svg';
+      iconUrl = 'icons/mesh.svg';
     } else if (object instanceof THREE.Group) {
-      iconUrl = '/icons/group.svg';
+      iconUrl = 'icons/group.svg';
     } else if (object instanceof THREE.Bone) {
-      iconUrl = '/icons/bone.svg';
+      iconUrl = 'icons/bone.svg';
     } else if (object instanceof THREE.SkinnedMesh) {
-      iconUrl = '/icons/skeleton.svg';
+      iconUrl = 'icons/skeleton.svg';
     } else {
-      iconUrl = '/icons/unknown.svg';
+      iconUrl = 'icons/unknown.svg';
     }
 
     // Crear el botón para mostrar/ocultar hijos solo si el objeto tiene hijos
@@ -37,7 +37,7 @@ function updateOutliner() {
       const toggleButton = document.createElement('button');
       toggleButton.classList.add('toggle-children-btn');
       const openIcon = document.createElement('img');
-      openIcon.src = isChildrenHidden ? '/icons/close.svg' : '/icons/open.svg';
+      openIcon.src = isChildrenHidden ? 'icons/close.svg' : 'icons/open.svg';
       openIcon.classList.add('icon');
       toggleButton.appendChild(openIcon);
       itemDiv.appendChild(toggleButton);
@@ -49,7 +49,7 @@ function updateOutliner() {
         object.userData.isChildrenHidden = isChildrenHidden; // Guardar el estado de despliegue
 
         // Cambiar el ícono según el estado de visibilidad
-        openIcon.src = isChildrenHidden ? '/icons/close.svg' : '/icons/open.svg';
+        openIcon.src = isChildrenHidden ? 'icons/close.svg' : 'icons/open.svg';
 
         // Mostrar u ocultar los contenedores de hijos
         childrenContainers.forEach(childContainer => {
