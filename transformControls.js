@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (clickCount === 1) {
           snapEnabled = !snapEnabled;
           if (snapEnabled) {
-            snapImage.src = '/icons/snap_on.svg';
+            snapImage.src = 'icons/snap_on.svg';
             snapButton.style.backgroundColor = 'var(--accent-secondary)';
           } else {
-            snapImage.src = '/icons/snap_off.svg';
+            snapImage.src = 'icons/snap_off.svg';
             snapButton.style.backgroundColor = '';
           }
         }
