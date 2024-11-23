@@ -2,8 +2,23 @@ const transformControls = new THREE.TransformControls(camera, renderer.domElemen
 transformControls.setSpace('local');
 scene.add(transformControls);
 
+scene.traverse((object) => {
+  if (object.userData.isBone && object.selected) {
+    if (!scene.children.includes(object)) {
+      scene.add(object);
+    }
+    transformControls.attach(object);
+  }
+});
+
 transformControls.addEventListener('dragging-changed', function(event) {
   controls.enableRotate = !event.value;
+});
+
+transformControls.traverse((child) => {
+  if (child.isLine) {
+    child.material.linewidth = 3;
+  }
 });
 
 transformControls.traverse((child) => {
@@ -78,10 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (clickCount === 1) {
           snapEnabled = !snapEnabled;
           if (snapEnabled) {
-            snapImage.src = 'icons/snap_on.svg';
+            snapImage.src = '/icons/snap_on.svg';
             snapButton.style.backgroundColor = 'var(--accent-secondary)';
           } else {
-            snapImage.src = 'icons/snap_off.svg';
+            snapImage.src = '/icons/snap_off.svg';
             snapButton.style.backgroundColor = '';
           }
         }
@@ -138,14 +153,21 @@ function updateAttachment() {
   if (selectedObject) {
     selectedObject.updateMatrixWorld(true);
 
-    if (selectedObject.parent) {
-      transformControls.attach(selectedObject);
-      selectedObject.updateMatrixWorld(true);
-    } else {
-      transformControls.attach(selectedObject);
+    let rootObject = selectedObject;
+    while (rootObject.parent && rootObject.parent !== scene) {
+      rootObject = rootObject.parent;
     }
+
+    transformControls.attach(rootObject);
+    rootObject.traverse((child) => {
+      if (child.userData.SelectedObject && !child.userData.locked) {
+        transformControls.attach(child);
+      }
+    });
+
+    rootObject.updateMatrixWorld(true);
   } else {
-    transformControls.detach(); // Desvincula si no hay objeto seleccionado
+    transformControls.detach();
   }
 }
 

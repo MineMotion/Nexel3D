@@ -1,13 +1,14 @@
 /* Estilos de la interfaz - UI*/
 :root {
   /* Primary Background Colors */
-  --bg-primary: #2E2E2E;
-  --bg-secondary: #1a1a1a;
-  --bg-light: #5e5e5e;
-  --bg-dark: #121212;
+  --bg-primary: #333333;
+  --bg-secondary: #2A2A2A;
+  --bg-light: #707070;
+  --bg-dark: #0d0d0d;
   
   --bg-opacity: #272727E0;
-
+  --bg-opacity-sec: #1F1F1FE0;
+  
   /* Button Colors */
   --btn-primary: #5C5C5C;
   --btn-secondary: #393939;
@@ -15,7 +16,7 @@
   --btn-dark: #2c2c2c;
   
   --btn-alert: #e63946;
-
+  
   /* Text Colors */
   --txt-primary: #dcdcdc;
   --txt-secondary: #7a7a7a;
@@ -23,13 +24,16 @@
   --txt-dark: #1a1a1a;
 
   /* Accent Colors */
-  --accent-primary: #FFA500;
+  --accent-primary: #FF8000;
   --accent-secondary: #5EA8EA;
   --accent-detail: #D38900;
 
   /* Border Colors */
   --border-primary: #444444;
   --border-secondary: #333333;
+  
+  /* Scene */
+  --scene-bg: #3D3D3D;
 }
 
 body { 
@@ -66,9 +70,10 @@ body {
   top: 0;
   position: absolute;
   display: inline-flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   background-color: var(--bg-primary);
   padding: 5px;
+  padding-top: 10px;
   border-radius: 0 0 5px 0;
   z-index: 9;
   border: 1px solid var(--border-primary);
@@ -81,15 +86,10 @@ body {
 }
 
 #topbar img {
-  width: 17px;
-  height: 17px;
+  width: 13px;
+  height: 13px;
 }
 
-
-
-#configToggle {
-  margin-left: auto;
-}
 
 hr {
   width: 100%;
@@ -100,16 +100,18 @@ hr {
   margin: 5px auto;
 }
 
-.notification {
+#notification {
   display: none;
   position: absolute;
   padding: 4px;
   left: 50%;
-  top: 50%;
+  bottom: 20%;
   background-color: var(--bg-opacity);
   border-radius: 8px;
   color: var(--txt-primary);
   transform: translate(-50%);
+  z-index: 1000;
+  animation: fadeInSlide 0.8s;
 }
 
 button, select {
@@ -127,6 +129,7 @@ button, select {
   justify-content: center;
   align-content: center;
   -webkit-tap-highlight-color: #00000020;
+  outline: none;
 }
 
 img[src$=".svg"] {
@@ -136,6 +139,11 @@ img[src$=".svg"] {
 
 button.active {
   background-color: var(--accent-primary);
+}
+
+#topbar #modeDropdown {
+  padding: 2px;
+  background-color: var(accent-secondary);
 }
 
 .transformControls hr {
@@ -153,12 +161,41 @@ button.active {
   margin: 2px;
 }
 
+#viewModePanel {
+  position: absolute;
+  top: 52px;
+  right: 2px;
+  display: flex;
+  flex-direction: row;
+  z-index: 10;
+}
+#viewModePanel button {
+  padding: 3px;
+  font-size: 8px;
+  cursor: pointer;
+  background-color: var(--btn-secondary);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+#optionMenu {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  width: 100px;
+  height: 300px;
+  transform: translateX(50%);
+  z-index: 1000;
+}
+
 #counterContainer {
   position: absolute;
   top: 40px;
   margin: 3px;
   right: 0;
-  display: flex;
+  display: none;
   justify-content: space-between;
   padding: 3px;
   width: 64%;
@@ -306,18 +343,96 @@ button.active {
   font-size: 14px;
 }
 
+#materialPropertiesDiv {
+  display: none;
+  position: absolute;
+  bottom: 60px;
+  right: 0;
+  padding: 12px;
+  width: 180px;
+  height: 280px;
+  overflow-y: auto;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 5px 5px 0 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 9;
+  color: var(--txt-primary);
+  font-size: 12px;
+}
+
+#materialPropertiesDiv label {
+  font-weight: bold;
+  color: var(--accent-primary);
+  font-size: 14px;
+  margin-top: 10px; /* Espaciado para un mejor orden visual */
+}
+
+#materialPropertiesDiv input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  background: var(--bg-dark);
+  outline: none;
+  opacity: 0.9;
+  transition: opacity 0.2s, background 0.2s;
+  cursor: pointer;
+  z-index: 1;
+  position: relative;
+  border-radius: 4px;
+}
+
+#materialPropertiesDiv input[type="range"]:hover {
+  opacity: 1;
+  background: var(--bg-light);
+}
+
+#materialPropertiesDiv input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  cursor: pointer;
+  border: 3px solid var(--bg-primary);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s, transform 0.2s;
+}
+
+#materialPropertiesDiv input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--accent-secondary);
+  transform: scale(1.2);
+}
+
+#materialPropertiesDiv input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  cursor: pointer;
+  border: 3px solid var(--bg-primary);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s, transform 0.2s;
+}
+
+#materialPropertiesDiv input[type="range"]::-moz-range-thumb:hover {
+  background: var(--accent-secondary);
+  transform: scale(1.2);
+}
+
 #materialPropertiesDiv input[type="color"],
-#materialPropertiesDiv input[type="range"],
 #materialPropertiesDiv input[type="checkbox"],
 #materialPropertiesDiv input[type="file"] {
-  width: 80%;
+  width: 100%;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-secondary);
   border-radius: 4px;
   color: var(--txt-secondary);
   padding: 4px;
   margin: 4px 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 #materialPropertiesDiv input[type="color"] {
@@ -327,48 +442,38 @@ button.active {
   cursor: pointer;
 }
 
-#materialPropertiesDiv input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  background: var(--bg-dark);
-  outline: none;
-  opacity: 0.9;
-  transition: opacity .2s;
-  cursor: pointer;
-}
-
-#materialPropertiesDiv input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 15px;
-  height: 15px;
-  border-radius: 40%;
-  background: var(--accent-primary);
-  cursor: pointer;
-  border: 2px solid var(--bg-primary);
-}
-
-#materialPropertiesDiv input[type="range"]::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--bg-dark);
-  cursor: pointer;
-  border: 2px solid var(--bg-primary);
-}
-
 #materialPropertiesDiv input[type="file"] {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-secondary);
-  border-radius: 4px;
-  color: var(--txt-primary);
-  padding: 4px;
   cursor: pointer;
-  display: inline-block;
-  font-size: 10px;
 }
 
+#materialPropertiesDiv .material-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Sección de color */
+#materialPropertiesDiv .color-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#materialPropertiesDiv .color-section label {
+  font-size: 14px;
+}
+
+#materialPropertiesDiv .range-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#materialPropertiesDiv .checkbox-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .actionBtn {
   background-color: var(--accent-primary);
   color: var(--txt-primary);
@@ -377,20 +482,15 @@ button.active {
 
 #addMenu {
   position: absolute;
-  transform: translate(-50%, -50%);
-  box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.5);
+  transform: translate(50%);
   z-index: 10;
   display: none;
-  top: 180px;
-  left: 120px;
-  padding: 8px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-secondary);
+  top: 50px;
+  left: -22%;
+  padding: 5px;
   border-radius: 8px;
-  font-size: 12px;
-  width: 220px;
+  width: 150px;
   height: 250px;
-  max-width: 240px;
 }
 
 @keyframes fadeInSlide {
@@ -402,7 +502,7 @@ button.active {
   }
 }
 
-#addMenu, .submenu, #object-properties, #materialsDiv, #materialPropertiesDiv, #container, #controls, .menu, .primary-menu {
+#addMenu, .submenu, #object-properties, #materialsDiv, #materialPropertiesDiv, #container, #outlinerActions, #controls, .menu, .primary-menu {
   animation: fadeInSlide 0.2s ease-in-out;
 }
 
@@ -413,6 +513,16 @@ button.active {
   flex-direction: column;
   top: 40%;
   z-index: 9;
+}
+
+.transformControls button {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 6px;
+  font-weight: bold;
+  justify-content: center;
+  align-items: center;
+  width: 90%;
 }
 
 .actionBar {
@@ -427,15 +537,45 @@ button.active {
   justify-items: center;
 }
 
-#outlinerDiv {
+.actionBar button  {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 6px;
+  align-items: center;
+  font-weight: bold;
+  justify-content: center;
+  width: 90%;
+}
+
+#outliner {
   display: none;
+}
+#outlinerActions {
+  display: block;
   position: absolute;
-  top: 40px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  top: 265px;
   right: 2px;
-  width: 150px;
+  width: 126px;
+  background-color: var(--bg-opacity-sec);
+  border-radius: 0 0 6px 6px;
+}
+
+#outlinerActions button {
+  padding: 1px;
+  margin: 1px;
+}
+
+#outlinerDiv {
+  display: block;
+  position: absolute;
+  top: 85px;
+  right: 2px;
+  width: 106px;
   height: 160px;
   background-color: var(--bg-opacity);
-  border-radius: 6px;
+  border-radius: 6px 6px 0 0;
   padding: 10px;
   color: var(--txt-primary);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -490,8 +630,8 @@ button.active {
 
 #modeSelector{
   position: absolute;
-  left: 0;
-  top: 44px;
+  left: 50%;
+  top: 50px;
   padding: 3px;
   z-index: 10;
   background: var(--btn-secondary);
@@ -509,8 +649,8 @@ button.active {
   border-radius: 8px;
   display: flex;
   gap: 2px;
-  align-items: center; /* Alinea los ítems verticalmente */
-  height: 30px; /* Ajusta según tus necesidades */
+  align-items: center;
+  height: 30px;
 }
 
 .frame { 
@@ -535,6 +675,7 @@ button.active {
   cursor: pointer; 
   position: relative;
 }
+
 #keyframeExtraButtons {
   position: absolute;
   bottom: 90px;
@@ -544,10 +685,6 @@ button.active {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-}
-
-#keyframeExtraButtons button {
-  background-color: var(--btn-secondary)
 }
 
 .frame-cursor {
@@ -697,7 +834,8 @@ textarea {
   transform: translate(-50%, -50%);
   padding: 8px;
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border-secondary);
+  border: 1px solid var(--border-primary);
+  align-content: center;
   border-radius: 5px;
   font-size: 12px;
   z-index: 9;
@@ -714,8 +852,34 @@ textarea {
   border-radius: 3px;
   margin: 4px 0;
   cursor: pointer;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
   text-align: center;
   font-size: 12px;
+}
+
+.menu-item img {
+  margin-right: 8px;
+}
+
+.editMenu {
+  font-size: 10px;
+  display: none;
+  position: absolute;
+  bottom: 50px;
+  right: 2px;
+  padding: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 5px;
+  font-size: 12px;
+  width: 150px;
+  height: 200px;
+  overflow-y: auto;
+  color: var(--txt-secondary);
+  z-index: 100;
 }
 
 .hidden {
@@ -733,16 +897,6 @@ textarea {
   height: 18px;
   width: 18px;
 }
-
-/* Mode Selector */
-#modeDropdown {
-  position: absolute;
-  left: 3px;
-  top: 45px;
-  outline: none;
-  padding: 2px;
-}
-
 
 #sceneMenu {
   display: none;
@@ -768,6 +922,69 @@ textarea {
 }
 
 
+#riggingMode{
+  z-index: 1000;
+}
+#riggingButtons {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translate(-50%);
+  width: 100%;
+  height: 45px;
+  z-index: 1500px;
+}
+#riggingButtons img {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+#riggingButtons button {
+  padding: 2px;
+  display: inline-flex;
+  flex-direction: column;
+  text-align: center;
+  font-size: 6px;
+  font-weight: bold;
+  justify-items: center;
+}
+
+#riggingButtons .editMenu button {
+  padding: 4px;
+  font-size: 8px;
+}
+
+#posePresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+}
+
+#posePresets div {
+  background-color: #f0f0f0;
+  color: #333;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#renderedImage {
+  width: auto;
+  height: auto;
+  left: 0;
+  top: 0;
+  margin: 3px;
+}
+
+#renderedImage img {
+  max-width: 30%;
+  height: auto;
+  border-radius: 4px;
+}
 
 @media (orientation: landscape) {
   #timelineContainer {
@@ -795,10 +1012,54 @@ textarea {
     transform: translateX(-50%);
     height: 26px;
     justify-content: space-between;
+    padding-top: 12px;
   }
   
   #topbar button {
     padding: 3px;
+  }
+  
+  #configs {
+    margin-left: auto;
+  }
+  
+  #riggingButtons {
+    left: 0;
+    transform: translateX(-28%);
+  }
+  
+  #render {
+    position: fixed;
+    right: 16%;
+    bottom: 4.5px;
+  }
+  
+  #optionMenu {
+    position: absolute;
+    left: 75%;
+    top: 40px;
+    height: 210px;
+  }
+  
+  #outliner {
+    display: block;
+  }
+
+  #outlinerDiv {
+    top: 70px;
+    right: 2px;
+    width: 110px;
+    height: 150px;
+  }
+  
+  #outlinerActions {
+    display: block;
+    position: absolute;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    top: 240px;
+    right: 2px;
+    width: 130px;
   }
   
   .transformControls, .actionBar{
@@ -811,17 +1072,28 @@ textarea {
     margin: 2px;
   }
   
-  #modeDropdown, #counterContainer {
-    top: 35px
+  #addMenu{
+    top: 40px;
+    left: -10%;
+    z-index: 11;
   }
   
-  #addMenu{
-    top: 170px;
-    z-index: 11;
+  #viewModePanel {
+    top: 38px
   }
   
   .menu, .primary-menu {
     position: absolute;
-    z-index: 11;
+    z-index: 1000;
+    height: 80%;
+  }
+  
+  .editMenu {
+    position: absolute;
+    height: 250px;
+    width: 200px;
+    right: 0px;
+    transform: translateX(150%);
+    bottom: 2px;
   }
 }

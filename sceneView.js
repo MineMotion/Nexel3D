@@ -1,14 +1,22 @@
 /* Shadows */
-const shadowToggle = document.getElementById('shadowToggle');
+function toggleLighting() {
+  const lightingToggle = document.getElementById('lightingToggle');
+  const lights = [];
 
-shadowToggle.addEventListener('change', (event) => {
-  const castShadows = event.target.checked;
+  scene.traverse((object) => {
+    if (object.isLight && !(object instanceof THREE.AmbientLight)) {
+      lights.push(object);
+    }
+  });
 
-  pointLight.castShadow = castShadows ? true : false;
-  directionalLight.castShadow = castShadows ? true : false;
-  potLight.castShadow = castShadows ? true : false;
-});
+  lights.forEach(light => light.visible = false);
 
+  if (lightingToggle.checked) {
+    setTimeout(() => {
+      lights.forEach(light => light.visible = true);
+    }, 100);
+  }
+}
 
 /* Lightning */
 const lightingToggle = document.getElementById('lightingToggle');
@@ -147,6 +155,9 @@ skeletonToggle.addEventListener('change', () => {
 const countersToggle = document.getElementById('countersToggle');
 const counterContainer = document.getElementById('counterContainer');
 
+// Inicializa la visibilidad según el estado del checkbox al cargar la página
+counterContainer.style.display = countersToggle.checked ? 'flex' : 'none';
+
 countersToggle.addEventListener('change', (event) => {
   counterContainer.style.display = event.target.checked ? 'flex' : 'none';
 });
@@ -170,3 +181,153 @@ fullHdToggle.addEventListener('change', (event) => {
 });
 
 
+/* Shading Modes Preview */
+let activeMode = null;
+function activateMode(mode) {
+  if (activeMode !== null) {
+    deactivateMode(activeMode);
+  }
+
+  activeMode = mode;
+
+  updateButtonState(mode, true);
+}
+function deactivateMode(mode) {
+  if (mode === 'wireframe') {
+    deactivateWireframeMode();
+  } else if (mode === 'solid') {
+    deactivateSolidMode();
+  } else if (mode === 'texture') {
+    deactivateTextureMode();
+  } else if (mode === 'rendered') {
+    deactivateRenderedMode();
+  }
+  activeMode = null;
+  updateButtonState(mode, false);
+}
+function updateButtonState(mode, isActive) {
+  const buttons = document.querySelectorAll('#viewModePanel button');
+  buttons.forEach(button => {
+    if (button.id === `${mode}Shading`) {
+      if (isActive) {
+        button.style.backgroundColor = 'var(--accent-secondary)';
+      } else {
+        button.style.backgroundColor = '';
+      }
+    } else {
+      button.style.backgroundColor = '';
+    }
+  });
+}
+
+// WIREFRAME
+document.getElementById('wireframeShading').addEventListener('click', () => {
+  if (activeMode === 'wireframe') {
+    deactivateWireframeMode();
+  } else {
+    activateMode('wireframe');
+    activateWireframeMode();
+  }
+});
+function deactivateWireframeMode() {
+  scene.traverse((object) => {
+    if (object.isMesh && object.userData.id !== 'exclude' && !object.userData.transformControlElement) {
+      object.material.wireframe = false;
+    }
+  });
+}
+function activateWireframeMode() {
+  scene.traverse((object) => {
+    if (object.isMesh && object.userData.id !== 'exclude' && !object.userData.transformControlElement) {
+      object.material.wireframe = true;
+    }
+  });
+}
+
+// SOLID
+document.getElementById('solidShading').addEventListener('click', () => {
+  if (activeMode === 'solid') {
+    deactivateSolidMode();
+  } else {
+    activateMode('solid');
+    activateSolidMode();
+  }
+});
+function deactivateSolidMode() {
+  scene.traverse((object) => {
+    if (object.isMesh && object.userData.id !== 'exclude' && !object.userData.transformControlElement) {
+      object.material = object.userData.originalMaterial;
+    }
+  });
+}
+function activateSolidMode() {
+  scene.traverse((object) => {
+    if (object.isMesh && object.userData.id !== 'exclude' && !object.userData.transformControlElement) {
+      if (!object.userData.originalMaterial) {
+        object.userData.originalMaterial = object.material;
+      }
+      object.material = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 1,
+        metalness: 0,
+      });
+    }
+  });
+}
+
+// TEXTURED
+document.getElementById('textureShading').addEventListener('click', () => {
+  if (activeMode === 'texture') {
+    deactivateTextureMode();
+  } else {
+    activateMode('texture');
+    activateTextureMode();
+  }
+});
+function deactivateTextureMode() {
+  scene.traverse((object) => {
+    if (object.isMesh && object.userData.id !== 'exclude' && !object.userData.transformControlElement) {
+      if (object.userData.originalMaterial) {
+        object.material = object.userData.originalMaterial;
+      }
+    }
+  });
+}
+function activateTextureMode() {
+  scene.traverse((object) => {
+    if (object.isMesh && object.userData.id !== 'exclude' && !object.userData.transformControlElement) {
+      if (!object.userData.originalMaterial) {
+        object.userData.originalMaterial = object.material.clone(); // Clonar material original
+      }
+      object.material = new THREE.MeshStandardMaterial({
+        map: object.userData.originalMaterial.map || null,
+        color: object.userData.originalMaterial.color || 0xffffff,
+      });
+    }
+  });
+}
+
+// RENDERED
+document.getElementById('renderedShading').addEventListener('click', () => {
+  if (activeMode === 'rendered') {
+    deactivateMode('rendered');
+  } else {
+    activateMode('rendered');
+    activateRenderedMode();
+  }
+});
+function activateRenderedMode() {
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene.traverse((object) => {
+    if (object.isMesh && object.userData.id !== 'exclude' && !object.userData.transformControlElement) {
+      if (object.userData.originalMaterial) {
+        object.material = object.userData.originalMaterial; // Restaurar material original
+      }
+    }
+  });
+}
+function deactivateRenderedMode() {
+  renderer.shadowMap.enabled = false;
+}

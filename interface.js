@@ -72,32 +72,19 @@ function changeMode() {
   }
 }
 
+function toggleActionBar() {
+  const outliner = document.getElementById('outliner');
+  const actionBar = document.querySelector('.actionBar');
 
-/* Pickr */
-const pickr = Pickr.create({
-  el: '#backgroundColor',
-  theme: 'classic',
-  swatches: [
-    '#303030', '#464A70', '#5F66B3', '#9A9A9A', '#DEDEDE'
-  ],
-  components: {
-    preview: true,
-    opacity: true,
-    hue: true,
-    interaction: {
-      hex: true,
-      rgb: true,
-      rgba: true,
-      hsla: true,
-      hsva: true,
-    }
+  if (window.getComputedStyle(outliner).display === 'block') {
+    actionBar.style.display = 'none';
+  } else {
+    actionBar.style.display = 'flex'; // Cambia a 'grid' si usas layout grid
   }
+}
+toggleActionBar();
+const observer = new MutationObserver(() => toggleActionBar());
+observer.observe(document.getElementById('outliner'), {
+  attributes: true,
+  attributeFilter: ['style'],
 });
-
-pickr.on('change', (color) => {
-  const rgbColor = color.toRGBA().toString();
-  scene.background = new THREE.Color(rgbColor);
-});
-
-
-/* Transitions */

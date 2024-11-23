@@ -222,7 +222,175 @@ function updateLockButton(isLocked) {
     lockButtonImage.src = '/icons/locked.svg';
     lockButton.style.backgroundColor = 'var(--accent-secondary)';
   } else {
-    lockButtonImage.src = 'icons/unlocked.svg';
+    lockButtonImage.src = '/icons/unlocked.svg';
     lockButton.style.backgroundColor = '';
   }
+}
+
+/* Parent */
+const parentSelButton = document.getElementById('parentSel');
+let selectedForParenting = null;
+let isWaitingForParent = false;
+function updateButtonStyle() {
+  parentSelButton.style.backgroundColor = isWaitingForParent ? 'var(--accent-secondary)' : '';
+}
+function parentSel() {
+  if (selectedForParenting) {
+    let targetObject = null;
+
+    scene.traverse((object) => {
+      if (object.userData.SelectedObject && object !== selectedForParenting) {
+        targetObject = object;
+      }
+    });
+
+    if (!targetObject) {
+      console.warn("No se ha encontrado un segundo objeto para parentar.");
+      return;
+    }
+
+    const globalPosition = new THREE.Vector3();
+    selectedForParenting.getWorldPosition(globalPosition);
+
+    targetObject.add(selectedForParenting);
+
+    const localPosition = targetObject.worldToLocal(globalPosition);
+    selectedForParenting.position.copy(localPosition);
+
+    deselectObject(selectedForParenting);
+    deselectObject(targetObject);
+
+    selectedForParenting = null;
+    isWaitingForParent = false;
+    updateButtonStyle();
+    console.log("El objeto seleccionado ahora es hijo de:", targetObject);
+  } else {
+    scene.traverse((object) => {
+      if (object.userData.SelectedObject) {
+        selectedForParenting = object;
+        isWaitingForParent = true;
+        updateButtonStyle();
+      }
+    });
+  }
+}
+parentSelButton.addEventListener('click', () => {
+  parentSel();
+  if (!isWaitingForParent) {
+    console.log("Esperando el próximo objeto para parentar.");
+  }
+});
+
+/* Fix */
+function fixSel() {
+  let selectedObject = null;
+
+  scene.traverse((object) => {
+    if (object.userData.SelectedObject) {
+      selectedObject = object;
+    }
+  });
+
+  if (!selectedObject) {
+    console.warn('No hay un objeto seleccionado.');
+    return;
+  }
+
+  const scale = selectedObject.scale.clone();
+
+  selectedObject.traverse((child) => {
+    if (child.isMesh && child.geometry) {
+      child.geometry.applyMatrix4(new THREE.Matrix4().makeScale(scale.x, scale.y, scale.z));
+      child.geometry.computeBoundingSphere();
+      child.geometry.computeBoundingBox();
+    }
+  });
+
+  selectedObject.scale.set(1, 1, 1);
+
+  deselectObject(); // Reinicia el outline al deseleccionar
+}
+
+/* Save Projects */
+function saveProject() {
+  const projectName = prompt("Ingrese el nombre del proyecto:");
+
+  if (!projectName) return;
+
+  // Crear objeto con los datos de la escena
+  const projectData = {
+    name: projectName,
+    objects: [],
+    materials: [],
+    animations: [],
+    timeline: getTimelineState(),
+    buttonsState: getButtonsState(),
+  };
+
+  // Recorrer los objetos de la escena
+  scene.traverse((object) => {
+    if (object.type === "Mesh") {
+      const objectData = {
+        name: object.name,
+        position: object.position.toArray(),
+        rotation: object.rotation.toArray(),
+        scale: object.scale.toArray(),
+        material: getMaterialData(object.material),
+      };
+      projectData.objects.push(objectData);
+    }
+  });
+
+  // Guardar el proyecto en IndexedDB
+  const request = indexedDB.open("projectDB", 1);
+
+  request.onsuccess = function(e) {
+    const db = e.target.result;
+    const transaction = db.transaction("projects", "readwrite");
+    const store = transaction.objectStore("projects");
+
+    const addRequest = store.add(projectData);
+    addRequest.onsuccess = function() {
+      alert("Proyecto guardado correctamente");
+    };
+
+    addRequest.onerror = function() {
+      alert("Error al guardar el proyecto");
+    };
+  };
+
+  request.onerror = function() {
+    alert("Error al acceder a la base de datos");
+  };
+}
+function getTimelineState() {
+  return {
+    currentTime: timeline.currentTime, // Suponiendo que tienes una variable 'timeline' que maneja la línea de tiempo
+    keyframes: timeline.keyframes, // Todos los keyframes
+  };
+}
+function getButtonsState() {
+  const buttonsState = {};
+
+  // Suponiendo que tienes botones con IDs específicos en tu interfaz
+  document.querySelectorAll('button').forEach(button => {
+    buttonsState[button.id] = {
+      enabled: !button.disabled,
+      text: button.textContent,
+    };
+  });
+
+  return buttonsState;
+}
+function getMaterialData(material) {
+  const materialData = {
+    type: material.type,
+    color: material.color ? material.color.getHex() : null,
+    emissive: material.emissive ? material.emissive.getHex() : null,
+    roughness: material.roughness,
+    metalness: material.metalness,
+    texture: material.map ? material.map.image.src : null,
+  };
+
+  return materialData;
 }

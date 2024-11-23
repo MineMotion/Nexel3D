@@ -6,14 +6,12 @@ const touchThreshold = 10;
 
 const raycaster = new THREE.Raycaster();
 const touch = new THREE.Vector2();
-
 window.addEventListener('touchstart', (event) => {
   if (event.touches.length > 0) {
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
   }
 });
-
 function isTouchInsideCanvas(event) {
   const canvases = document.querySelectorAll('canvas');
   for (let canvas of canvases) {
@@ -26,7 +24,6 @@ function isTouchInsideCanvas(event) {
   }
   return false;
 }
-
 function isTouchOnUIElement(event) {
   const touchX = event.changedTouches[0].clientX;
   const touchY = event.changedTouches[0].clientY;
@@ -39,7 +36,6 @@ function isTouchOnUIElement(event) {
   }
   return false;
 }
-
 function seleccionarObjeto(event) {
   if (event.changedTouches.length > 0) {
     const touchEndX = event.changedTouches[0].clientX;
@@ -76,7 +72,6 @@ function seleccionarObjeto(event) {
     }
   }
 }
-
 function isPartOfTransformControls(object) {
   if (object === transformControls) return true;
   let parent = object.parent;
@@ -86,11 +81,9 @@ function isPartOfTransformControls(object) {
   }
   return false;
 }
-
 function isNoSeleccionable(object) {
   return object.userData.noSeleccionable === true;
 }
-
 window.addEventListener('touchend', seleccionarObjeto);
 
 /* Deselect */
@@ -102,59 +95,12 @@ function deselectObject() {
   });
 
   objetoSeleccionado = null;
-}
-
-/* Outline de Selección */
-const edgeMaterial = new THREE.LineBasicMaterial({
-  color: 0xffa500,
-  linewidth: 3,
-  depthTest: true,
-  depthWrite: true,
-});
-
-function addEdgeOutline(object) {
-  const edgesGeometry = new THREE.EdgesGeometry(object.geometry);
-  const edges = new THREE.LineSegments(edgesGeometry, edgeMaterial);
-  edges.position.copy(object.position);
-  edges.scale.copy(object.scale);
-  edges.rotation.copy(object.rotation);
-  edges.renderOrder = 0;
-  object.edges = edges;
-  object.edges.userData.exclude = true;
-  scene.add(edges);
-}
-
-function removeEdgeOutline(object) {
-  if (object.edges) {
-    scene.remove(object.edges);
-    delete object.edges;
-  }
-}
-
-function updateOutlines() {
-  scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      if (object.userData.SelectedObject) {
-        if (!object.edges) {
-          addEdgeOutline(object);
-        }
-        if (object.edges) {
-          object.edges.position.copy(object.position);
-          object.edges.rotation.copy(object.rotation);
-          object.edges.scale.copy(object.scale);
-
-        }
-      } else {
-        removeEdgeOutline(object);
-      }
-    }
-  });
+  updateOutliner();
 }
 
 /* Area Selection */
 const selectAreaButton = document.getElementById('selectArea');
 let isSelectingArea = false;
-
 selectAreaButton.addEventListener('click', () => {
   if (!isSelectingArea) {
     isSelectingArea = true;
@@ -170,11 +116,9 @@ selectAreaButton.addEventListener('click', () => {
     isSelectingArea = false;
   }
 });
-
 let selectionRectangle;
 let startX = 0;
 let startY = 0;
-
 function startSelectionRectangle() {
   window.addEventListener('touchstart', onTouchStart);
   window.addEventListener('touchmove', onTouchMove);
@@ -187,7 +131,6 @@ function startSelectionRectangle() {
   selectionRectangle.style.pointerEvents = 'none';
   document.body.appendChild(selectionRectangle);
 }
-
 function stopSelectionRectangle() {
   window.removeEventListener('touchstart', onTouchStart);
   window.removeEventListener('touchmove', onTouchMove);
@@ -198,7 +141,6 @@ function stopSelectionRectangle() {
     selectionRectangle = null;
   }
 }
-
 function onTouchStart(event) {
   if (event.touches.length === 1) {
     startX = event.touches[0].clientX;
@@ -210,7 +152,6 @@ function onTouchStart(event) {
     selectionRectangle.style.height = `0px`;
   }
 }
-
 function onTouchMove(event) {
   if (event.touches.length === 1) {
     const currentX = event.touches[0].clientX;
@@ -225,7 +166,6 @@ function onTouchMove(event) {
     selectionRectangle.style.height = `${height}px`;
   }
 }
-
 function onTouchEnd() {
   console.log("Selección completada");
 
@@ -265,4 +205,52 @@ function onTouchEnd() {
   stopSelectionRectangle();
   controls.enableRotate = true;
   selectAreaButton.style.backgroundColor = "";
+}
+
+/* Outline de Selección */
+const edgeMaterial = new THREE.LineBasicMaterial({
+  color: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim(),
+  linewidth: 6,
+  depthTest: true,
+  depthWrite: false,
+});
+function addEdgeOutline(object) {
+  const edgesGeometry = new THREE.EdgesGeometry(object.geometry);
+  const edges = new THREE.LineSegments(edgesGeometry, edgeMaterial);
+  edges.position.set(0, 0, 0);
+  object.add(edges);
+  object.edges = edges;
+  object.edges.userData.exclude = true;
+  updateOutliner();
+}
+function removeEdgeOutline(object) {
+  if (object.edges) {
+    object.remove(object.edges);
+    object.edges.geometry.dispose();
+    object.edges.material.dispose();
+    delete object.edges;
+  }
+}
+function removeAllEdgeOutlines() {
+  scene.traverse((object) => {
+    if (object.edges) {
+      object.remove(object.edges);
+      object.edges.geometry.dispose();
+      object.edges.material.dispose();
+      object.edges = null;
+    }
+  });
+}
+function updateOutlines() {
+  scene.traverse((object) => {
+    const hasBones = object instanceof THREE.Object3D && object.children.some(child => child instanceof THREE.Bone);
+
+    if (object instanceof THREE.Mesh && object.userData.SelectedObject && !hasBones) {
+      if (!object.edges) {
+        addEdgeOutline(object);
+      }
+    } else {
+      removeEdgeOutline(object);
+    }
+  });
 }

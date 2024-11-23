@@ -32,7 +32,7 @@ function init() {
   scene.userData.exclude = true;
   
   // Color de fondo
-  scene.background = new THREE.Color(0x292929);
+  scene.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--scene-bg').trim());
   
   // Textura de fondo
   // const textureLoader = new THREE.TextureLoader();
@@ -49,22 +49,24 @@ function init() {
 
   for (let i = 0; i < positions.length; i += 3) {
   if (positions[i] === 0) {
-    gridHelper.geometry.attributes.color.setXYZ(i / 3, 117 / 255, 152 / 255, 1); // Azul claro
-  }
-  if (positions[i + 2] === 0) {
-    gridHelper.geometry.attributes.color.setXYZ(i / 3, 255 / 255, 83 / 255, 83 / 255); // Rojo claro
-  }
+  gridHelper.geometry.attributes.color.setXYZ(i / 3, 153 / 255, 255 / 255, 153 / 255); // Verde claro 
+}
+if (positions[i + 2] === 0) {
+  gridHelper.geometry.attributes.color.setXYZ(i / 3, 255 / 255, 83 / 255, 83 / 255); // Rojo claro
+}
 }
 
   gridHelper.geometry.attributes.color.needsUpdate = true;
   
   // Luz ambiental
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
   ambientLight.userData.exclude = true;
 
   // Renderizador
   renderer = new THREE.WebGLRenderer({ antialias: true});
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -73,14 +75,11 @@ function init() {
   renderer.setPixelRatio(window.devicePixelRatio);
   
   container.appendChild(renderer.domElement);
-  
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // Controles de la cámara
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.dampingFactor = 0.15;
+  controls.dampingFactor = 0.25;
   controls.screenSpacePanning = true;
   controls.maxPolarAngle = Math.PI / 0;
   controls.minPolarAngle = 0;
@@ -98,5 +97,6 @@ function init() {
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  toggleActionBar();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
