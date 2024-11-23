@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cambiar la imagen según el estado del autoKey
   if (autoKeyActive) {
-    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe On">';
+    autoKeyButton.innerHTML = '<img src="icons/autokey_off.svg" alt="Auto Keyframe On">';
     autoKeyButton.style.backgroundColor = 'var(--accent-secondary)';
   } else {
-    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe Off">';
+    autoKeyButton.innerHTML = '<img src="icons/autokey_off.svg" alt="Auto Keyframe Off">';
     autoKeyButton.style.backgroundColor = ''; 
   }
 });
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? '<img src="/icons/keyframe_add.svg" alt="Change">'
         : '<img src="/icons/keyframe_add.svg" alt="Add">';
     } else {
-      keyframeButton.innerHTML = '<img src="/icons/keyframe.svg" alt="Add">';
+      keyframeButton.innerHTML = '<img src="icons/keyframe.svg" alt="Add">';
     }
   }
 }
@@ -262,10 +262,10 @@ document.addEventListener('DOMContentLoaded', () => {
   
   /* Pause Button */
   const pauseButton = document.getElementById('pauseButton');
-  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
+  pauseButton.innerHTML = isPaused ? '<img src="icons/play.svg" alt="Play">' : '<img src="icons/pause.svg" alt="Pause">';
   pauseButton.addEventListener('click', () => {
   isPaused = !isPaused;
-  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
+  pauseButton.innerHTML = isPaused ? '<img src="icons/play.svg" alt="Play">' : '<img src="icons/pause.svg" alt="Pause">';
 
   if (!isPaused) {
     pauseButton.style.backgroundColor = 'var(--accent-secondary)';
@@ -331,7 +331,7 @@ function detectObjectChanges() {
   
   const hasPositionChanged = !selectedObject.position.equals(lastPosition);
   const hasRotationChanged = !selectedObject.rotation.equals(lastRotation);
-  const hasScaleChanged = !selectedObject.scale.equals(lastScale); // Corregido la variable
+  const hasScaleChanged = !selectedObject.scale.equals(lastScale);
 
   if (autoKeyActive && (hasPositionChanged || hasRotationChanged || hasScaleChanged)) {
     addKeyframeIfChanged(selectedObject);
