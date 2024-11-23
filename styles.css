@@ -73,7 +73,7 @@ body {
   justify-content: space-between;
   background-color: var(--bg-primary);
   padding: 5px;
-  padding-top: 10px;
+  padding-top: 18px;
   border-radius: 0 0 5px 0;
   z-index: 9;
   border: 1px solid var(--border-primary);
