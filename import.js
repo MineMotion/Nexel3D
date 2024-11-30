@@ -1,3 +1,75 @@
+function fastImport() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.obj,.fbx,.gltf,.glb,.stl';
+
+  input.onchange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const extension = file.name.split('.').pop().toLowerCase();
+    const url = URL.createObjectURL(file);
+
+    switch (extension) {
+      case 'obj': {
+        const loader = new THREE.OBJLoader();
+        loader.load(
+          url,
+          (object) => {
+            scene.add(object);
+          },
+          undefined,
+          (error) => console.error('Error cargando OBJ:', error)
+        );
+        break;
+      }
+      case 'fbx': {
+        const loader = new THREE.FBXLoader();
+        loader.load(
+          url,
+          (object) => {
+            scene.add(object);
+          },
+          undefined,
+          (error) => console.error('Error cargando FBX:', error)
+        );
+        break;
+      }
+      case 'gltf':
+      case 'glb': {
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+          url,
+          (gltf) => {
+            scene.add(gltf.scene);
+          },
+          undefined,
+          (error) => console.error('Error cargando GLTF/GLB:', error)
+        );
+        break;
+      }
+      case 'stl': {
+        const loader = new THREE.STLLoader();
+        loader.load(
+          url,
+          (geometry) => {
+            const material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+          },
+          undefined,
+          (error) => console.error('Error cargando STL:', error)
+        );
+        break;
+      }
+      default:
+        console.error('Formato de archivo no soportado:', extension);
+    }
+  };
+
+  input.click();
+}
+
 function importOBJ() {
   const input = document.createElement('input');
   input.type = 'file';
