@@ -1,7 +1,78 @@
-// Configuración de Huesos
+// Acciones para Undo Redo
+class AddBoneAction {
+  constructor(bone, parent) {
+    this.bone = bone;
+    this.parent = parent;
+  }
+
+  undo() {
+    this.parent.remove(this.bone);
+  }
+
+  redo() {
+    this.parent.add(this.bone);
+  }
+}
+class SetAncleAction {
+  constructor(object, originalColor) {
+    this.object = object;
+    this.originalColor = originalColor;
+  }
+
+  undo() {
+    this.object.userData.isAncle = false;
+    const boneMesh = this.object.children.find((child) => child.userData.id === 'bone');
+    if (boneMesh) {
+      boneMesh.material.color.set(this.originalColor);
+    }
+  }
+
+  redo() {
+    this.object.userData.isAncle = true;
+    const boneMesh = this.object.children.find((child) => child.userData.id === 'bone');
+    if (boneMesh) {
+      boneMesh.material.color.set(0x00ff00);
+    }
+  }
+}
+class SetControllerAction {
+  constructor(object, originalColor, targetObject) {
+    this.object = object;
+    this.originalColor = originalColor;
+    this.targetObject = targetObject;
+  }
+
+  undo() {
+    this.object.userData.isController = false;
+    const boneMesh = this.object.children.find((child) => child.userData.id === 'bone');
+    if (boneMesh) {
+      boneMesh.material.color.set(this.originalColor);
+    }
+    if (this.targetObject) {
+      scene.remove(this.targetObject);
+    }
+  }
+
+  redo() {
+    this.object.userData.isController = true;
+    const boneMesh = this.object.children.find((child) => child.userData.id === 'bone');
+    if (boneMesh) {
+      boneMesh.material.color.set(0xff0000);
+    }
+    const boxGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    const wireframe = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeometry), lineMaterial);
+    wireframe.position.copy(this.object.position);
+    wireframe.position.y += 1;
+    scene.add(wireframe);
+    this.object.userData.target = wireframe;
+  }
+}
+
+// Huesos y esqueletos
 function addBone() {
   const boneLoader = new THREE.OBJLoader();
-  boneLoader.load('assets/bone.obj', function(obj) {
+  boneLoader.load('assets/Models/bone.obj', function(obj) {
     const boneMesh = obj.children[0];
 
     boneMesh.material = new THREE.MeshStandardMaterial({
@@ -13,7 +84,6 @@ function addBone() {
     boneMesh.userData.id = 'bone';
     boneMesh.userData.exclude = true;
     boneMesh.visible = true;
-
     boneMesh.renderOrder = 1000;
     boneMesh.layers.set(1);
 
@@ -44,11 +114,16 @@ function addBone() {
 
     bone.rotation.set(0, 0, 0);
     bone.userData.SelectedObject = true;
+    bone.name = 'Bone';
     updateAttachment();
 
     camera.layers.enable(1);
     renderer.render(scene, camera);
     updateOutliner();
+
+    // Crear la acción de añadir el hueso para deshacer
+    const addBoneActionInstance = new AddBoneAction(bone, targetObject);
+    undoRedoManager.addAction(addBoneActionInstance);
   });
 }
 function attachSkeleton() {
@@ -262,42 +337,40 @@ function detachSkeleton() {
 function setAncle() {
   scene.traverse((object) => {
     if (object.userData.SelectedObject) {
+      const boneMesh = object.children.find((child) => child.userData.id === 'bone');
+      const originalColor = boneMesh ? boneMesh.material.color.getHex() : null;
+
       object.userData.isAncle = true;
 
-      // Cambiar color del objeto hijo boneMesh
-      const boneMesh = object.children.find((child) => child.userData.id === 'bone');
       if (boneMesh) {
         boneMesh.material.color.set(0x00ff00);
       }
+      const setAncleActionInstance = new SetAncleAction(object, originalColor);
+      undoRedoManager.addAction(setAncleActionInstance);
     }
   });
 }
 function setController() {
   scene.traverse((object) => {
     if (object.userData.SelectedObject) {
-      object.userData.isController = true;
-
-      // Cambiar color del objeto hijo boneMesh
       const boneMesh = object.children.find((child) => child.userData.id === 'bone');
+      const originalColor = boneMesh ? boneMesh.material.color.getHex() : null;
+      object.userData.isController = true;
       if (boneMesh) {
-        boneMesh.material.color.set(0xff0000); // Rojo para Controller
+        boneMesh.material.color.set(0xff0000);
       }
-
-      // Crear objeto target con forma de cubo alámbrico
-      const boxGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5); // Tamaño del cubo
-      const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 }); // Material rojo
+      const boxGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
       const wireframe = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeometry), lineMaterial);
-
-      // Posicionar el controlador en la posición del hueso seleccionado, elevado en 1 unidad en el eje Y
       wireframe.position.copy(object.position);
       wireframe.position.y += 1;
-
-      // Añadir el controlador a la escena y asociarlo al hueso
       scene.add(wireframe);
       object.userData.target = wireframe;
+      const setControllerActionInstance = new SetControllerAction(object, originalColor, wireframe);
+      undoRedoManager.addAction(setControllerActionInstance);
     }
-    updateOutliner();
   });
+  updateOutliner();
 }
 function setupIK() {
   const notification = document.getElementById('notification');

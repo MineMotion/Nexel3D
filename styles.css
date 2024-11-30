@@ -4,18 +4,18 @@
   --bg-primary: #333333;
   --bg-secondary: #2A2A2A;
   --bg-light: #707070;
-  --bg-dark: #0d0d0d;
+  --bg-dark: #131313;
   
   --bg-opacity: #272727E0;
   --bg-opacity-sec: #1F1F1FE0;
   
   /* Button Colors */
-  --btn-primary: #5C5C5C;
+  --btn-primary: #464646;
   --btn-secondary: #393939;
-  --btn-light: #9a9a9a;
-  --btn-dark: #2c2c2c;
+  --btn-light: #929292;
+  --btn-dark: #2C2C2C;
   
-  --btn-alert: #e63946;
+  --btn-alert: #F42434;
   
   /* Text Colors */
   --txt-primary: #dcdcdc;
@@ -29,8 +29,10 @@
   --accent-detail: #D38900;
 
   /* Border Colors */
-  --border-primary: #444444;
-  --border-secondary: #333333;
+  --border-primary: #505050;
+  --border-secondary: #424242;
+  
+  --border-accent: #FFA54F;
   
   /* Scene */
   --scene-bg: #3D3D3D;
@@ -73,10 +75,10 @@ body {
   justify-content: space-between;
   background-color: var(--bg-primary);
   padding: 5px;
-  padding-top: 18px;
+  padding-top: 16px;
   border-radius: 0 0 5px 0;
   z-index: 9;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border-secondary);
 }
 
 #topbar button {
@@ -86,8 +88,44 @@ body {
 }
 
 #topbar img {
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
+}
+
+
+#objectTools {
+  display: none;
+  position: absolute;
+  left: 2px;
+  top: 150px;
+}
+#toolsMenuContainer {
+  position: absolute;
+  left: 40px;
+  top: 150px;
+  
+}
+
+.toolMenu {
+  display: none;
+  position: absolute;
+  width: 120px;
+  height: auto;
+  max-height: 230px;
+  overflow-y: auto;
+  background-color: var(--bg-opacity);
+  border: 1px solid var(--border-secondary);
+  border-radius: 3px;
+  padding: 4px;
+}
+
+.toolMenu button,
+.toolMenu select,
+.toolMenu input {
+  display: block;
+  margin: 4px 0;
+  width: 96%;
+  padding: 3px;
 }
 
 
@@ -95,9 +133,8 @@ hr {
   width: 100%;
   border: none;
   border-radius: 2px;
-  height: 3px;
-  background: var(--border-primary);
-  margin: 5px auto;
+  height: 2px;
+  background: var(--border-secondary);
 }
 
 #notification {
@@ -119,7 +156,7 @@ button, select {
   background-color: var(--btn-primary);
   color: var(--txt-primary);
   font-size: 10px;
-  border: none;
+  border: solid 1px var(--border-primary);
   cursor: pointer;
   margin: 3px;
   padding: 6px;
@@ -146,6 +183,20 @@ button.active {
   background-color: var(accent-secondary);
 }
 
+#undoRedo {
+  position: absolute;
+  left: 2px;
+  top: 56px;
+  background-color: var(--bg-opacity);
+  border-radius: 5px;
+}
+
+#undoRedo button {
+  padding: 2px;
+  border: solid 1px var(--border-secondary);
+  background-color: var(--btn-secondary);
+}
+
 .transformControls hr {
   width: 80%;
 }
@@ -163,21 +214,23 @@ button.active {
 
 #viewModePanel {
   position: absolute;
-  top: 52px;
+  top: 57px;
   right: 2px;
   display: flex;
   flex-direction: row;
   z-index: 10;
+  background-color: var(--bg-opacity);
+  border-radius: 5px;
 }
 #viewModePanel button {
-  padding: 3px;
+  padding: 2px;
   font-size: 8px;
   cursor: pointer;
   background-color: var(--btn-secondary);
   color: white;
-  border: none;
+  border: solid 1px var(--border-secondary);
   border-radius: 5px;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 
 #optionMenu {
@@ -188,6 +241,31 @@ button.active {
   height: 300px;
   transform: translateX(50%);
   z-index: 1000;
+}
+
+#importMenu {
+  justify-items: center;
+}
+
+#importMenu button {
+  align-items: center;
+}
+
+#modelPreview {
+  display: flex;
+  position: relative;
+  background-color: var(--bg-dark);
+  width: 120px;
+  height: 120px;
+  border-radius: 4px;
+  margin-top: 15px;
+  justify-content: center;
+  align-items: end;
+}
+
+#modelPreview button {
+  width: 100%;
+  bottom: 0;
 }
 
 #counterContainer {
@@ -254,7 +332,7 @@ button.active {
 #object-properties {
   display: none;
   position: absolute;
-  top: 42px;
+  top: 60px;
   left: 0;
   padding: 8px;
   background-color: var(--bg-secondary);
@@ -263,8 +341,7 @@ button.active {
   border-radius: 0 5px 5px 0;
   font-size: 11px;
   z-index: 11;
-  width: 260px;
-  max-width: 280px;
+  width: 240px;
 }
 
 #object-properties h3 {
@@ -435,17 +512,6 @@ button.active {
   font-size: 12px;
 }
 
-#materialPropertiesDiv input[type="color"] {
-  padding: 0;
-  height: 28px;
-  border: none;
-  cursor: pointer;
-}
-
-#materialPropertiesDiv input[type="file"] {
-  cursor: pointer;
-}
-
 #materialPropertiesDiv .material-section {
   display: flex;
   flex-direction: column;
@@ -477,6 +543,7 @@ button.active {
 .actionBtn {
   background-color: var(--accent-primary);
   color: var(--txt-primary);
+  border: solid 1px var(--border-accent);
   font-weight: bold;
 }
 
@@ -628,6 +695,37 @@ button.active {
   height: 0;
 }
 
+#cameraViewport {
+  position: absolute;
+  display: none;
+  top: 80px;
+  left: 10px;
+  width: 200px;
+  height: 100px;
+  border: 2px solid var(--border-secondary);
+  border-radius: 3px;
+  background-color: #000;
+  overflow: hidden;
+}
+
+#closeViewport {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  height: 15px;
+  width: 15px;
+  align-items: center;
+  font-weight: bold;
+  background-color: var(--btn-alert);
+}
+
+#pin {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background-color: var(--btn-secondary);
+}
+
 #modeSelector{
   position: absolute;
   left: 50%;
@@ -681,10 +779,15 @@ button.active {
   bottom: 90px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
+  display: none;
   justify-content: space-between;
   align-items: center;
   width: 100%;
+}
+
+#keyframeExtraButtons button {
+  padding: 3px;
+  background-color: var(--btn-secondary);
 }
 
 .frame-cursor {
@@ -762,8 +865,9 @@ button.active {
 }
 
 .frame-number {
+  display: flex;
   top: 105%;
-  position: absolute;
+  position: fixed;
   bottom: 0;
   font-size: 8px;
   font-weight: bold;

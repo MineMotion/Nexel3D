@@ -3,16 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="google-adsense-account" content="ca-pub-5505819559914400">
   <title>Nexel 3D</title>
 
   <!-- CSS -->
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
-
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5505819559914400"
-     crossorigin="anonymous"></script>
   
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -24,12 +19,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
   
   <script src="https://cdn.jsdelivr.net/npm/three@0.130.1/examples/js/loaders/RGBELoader.js"></script>
-
+  
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/STLLoader.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.6.9/umd/index.min.js"></script>
   
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
   
@@ -44,6 +45,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/postprocessing/RenderPass.js"></script>
   
   <script src="https://cdn.skypack.dev/three@0.153.0/examples/js/exporters/GLTFExporter.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/exporters/OBJExporter.js"></script>
  
   <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
   
@@ -57,10 +60,16 @@
   <!-- Escena 3D -->
   <div id="container"></div>
   
+  <!-- Camera Viewport -->
+  <div id="cameraViewport">
+    <button onclick="closeViewport()" id="closeViewport">×</button>
+    <button onclick="pin()" id="pin">pin</button>
+  </div>
+  
   <!-- Top Bar -->
   <div id="topbar">
     
-    <button class="actionBtn" onclick="showMenu('addMenu')"><img src="icons/add.svg">Add</button>
+    <button class="actionBtn" onclick="showMenu('addMenu')"><img src="icons/add.svg" id="add">Add</button>
     
     <button onclick="showMenu('object-properties')"><img src="icons/properties.svg">Stats</button>
    
@@ -72,8 +81,6 @@
     </select>
     
     <button onclick="showMenu('outliner'), updateOutliner()"><img src="icons/outliner.svg">Outliner</button>
-    
-    
     
     <button id="options"onclick="showMenu('optionMenu')"><img src="icons/options.svg">Menu</button>
     
@@ -95,6 +102,7 @@
     <hr>
     
     <div class="menu-item" onclick="addBone(), hide()">bone</div>
+    <div class="menu-item" onclick="addCamera(), hide()">Camera</div>
     
     <hr>
     
@@ -102,8 +110,6 @@
     <input type="file" id="fileInput" accept=".gltf, .glb, .obj, .fbx" style="display: none;">
     
     <hr>
-
-    <div class="menu-item" onclick="showMenu('presetMenu')">Presets</div>
     
     <div class="menu-item" onclick="showMenu('nexelLabMenu')">Nexel Lab 🧪</div>
 
@@ -112,6 +118,8 @@
   <!-- Menu Options -->
   <div class="primary-menu" id="optionMenu">
     <h3>Menu</h3>
+    
+    <div onclick="window.location.href='index.html'" class="menu-item"><img src="icons/home.svg">Home</div>
     
     <div onclick="saveProject()" id="saveProject" class="menu-item"><img src="icons/preset.svg">Save</div>
     
@@ -124,13 +132,49 @@
     <div onclick="showMenu('exportMenu')" class="menu-item"><img src="icons/export.svg">Export</div>
     
     <div onclick="showMenu('configsMenu')" class="menu-item"><img src="icons/preferences.svg">Configs</div>
-    
-    <div onclick="window.location.href='index.html'" class="menu-item"><img src="icons/home.svg">Home</div>
    
   </div>
   
-  <!-- Menu Emergente -->
-  <div></div>
+  <!-- Object Tools  -->
+  <button onclick="showObjectTools()" id="objectTools" class="objectTools"><img src="icons/tool_settings.svg"></button>
+  
+  <div id="toolsMenuContainer">
+    
+    <div id="meshTools" class="toolMenu">
+      <h4>Name</h4>
+      <button onclick="showMenu('materialMode')">Material</button>
+      <hr>
+      <h5>Phisics</h5>
+      <button onclick="addStaticPhysics()">Static</button>
+      <button onclick="addPhysics()">Rigid</button>
+    </div>
+    
+    <div id="lightTools" class="toolMenu">
+      <h4>Name</h4>
+    </div>
+    
+    <div id="boneTools" class="toolMenu">
+      <h4>Name</h4>
+      <button onclick=""="showMenu('constraintsEdit')">Constraints</button>
+      <div id="constraintsEdit" class="menu">
+        Constraints
+        <div>x</div>
+        <div>y</div>
+        <div>z</div>
+      </div>
+    </div>
+    
+    <div id="cameraTools" class="toolMenu">
+      <h4>Name</h4>
+      <input onchange="changeColor()" id="backgroundColor" type="color">
+      <button onclick="setupCameraViewport(), makeViewportDraggable()">Camera Viewport</button>
+      <button onclick="closeViewport()">close</button>
+      <hr>
+      <button onclick="lookOnObject()">Look at Target</button>
+      <button onclick="addTarget()">add Target</button>
+    </div>
+    
+  </div>
 
   <!-- Mesh Menu -->
   <div id="meshMenu" class="menu">
@@ -287,6 +331,29 @@
     
   </div>
   
+  <!-- Import Menu -->
+  <div id="importMenu" class="menu">
+    <h3>Import Models</h3>
+    <button onclick="importOBJ()"><img src="icons/file_new.svg">.OBJ</button>
+    <button onclick="importFBX()"><img src="icons/file_new.svg">.FBX</button>
+    <button onclick="importGLTF()"><img src="icons/file_new.svg">.GLTF</button>
+    <button><img src="icons/file_new.svg">.STL</button>
+    <button onclick="importZIP()"><img src="icons/file_folder.svg">.ZIP</button>
+    <br>
+    <hr>
+    <label for="togglePreview">Model Preview</label><input id="togglePreview" type="checkbox">
+    <div id="modelPreview"></div>
+    <button onclick="addToScene()">Add to scene</button><br>
+  </div>
+  
+  <!-- Export Menu -->
+  <div id="exportMenu" class="menu">
+  <h3>Export Scene</h3>
+  <button onclick="exportOBJ()"><img src="icons/file_new.svg">.OBJ</button>
+  <button onclick="exportFBX()"><img src="icons/file_new.svg">.FBX</button>
+  <button onclick="exportGLTF()"><img src="icons/file_new.svg">.GLTF</button>
+</div>
+  
   <!-- Configs Menu Principal -->
   <div id="configsMenu" class="primary-menu">
     
@@ -297,38 +364,7 @@
   <div class="menu-item" onclick="showMenu('addonMenu')">Addons</div>
 
   <div class="menu-item" onclick="showMenu('themeMenu')">Themes</div>
-
-  <hr>
   
-  <button onclick="exportarEscena()">Exportar en GLTF</button>
-  
-  <hr>
-  
-  <button id="guardarProyecto">Guardar Proyecto</button>
-  
-  <div id="savedProjects"></div>
-  
-  <hr />
-  
-  <div id="module-list"></div>
-  <script>
-   function displayStoredModules() {
-     const request = indexedDB.open('modulesDB', 1);
-     request.onsuccess = function(event) {
-       const db = event.target.result;
-       const transaction = db.transaction('modules', 'readonly');
-       const store = transaction.objectStore('modules');
-       const request = store.getAll();
-       request.onsuccess = function(event) {
-         const modules = event.target.result;
-         const moduleList = document.getElementById('module-list');
-         moduleList.innerHTML = modules.map(module => `<div>${module.name}</div>`).join('');
-       };
-     };
-   }
-   displayStoredModules();
- </script>
-
  </div>
  
   <!-- Addons Menu-->
@@ -372,7 +408,7 @@
   
   <!-- Progress Bar -->
   <div id="progressBar">
-  <p class="progress-text">Importing...</p>
+   <p class="progress-text">Importing...</p>
   <div id="progress"></div>
 </div>
  
@@ -385,10 +421,8 @@
     <button id="scl"><img src="icons/con_sizelimit.svg">Scl</button>
     <hr>
     <button id="snap-toggle">
-  <img src="icons/snap_off.svg" id="snap-img">Snap
+  <img src="/icons/snap_off.svg" id="snap-img">Snap
 </button>
-    <hr>
-    <button onclick="fixSel()"><img src="icons/fix.svg">Fix</button>
   </div>
   
   <!-- Action bar -->
@@ -397,33 +431,29 @@
     <button onclick="duplicateSel()"><img src="icons/duplicate.svg">Copy</button>
     <button onclick="groupSel()"><img src="icons/group.svg">Group</button>
     <button onclick="hideSel()"><img src="icons/hide_off.svg">Hide</button>
+    
     <hr>
-    <button onclick="renameSel()"><img src="icons/rename.svg">Name</button>
-    <button onclick="lockSel()"><img src="icons/unlocked.svg" id="lock">Lock</button>
-    <hr>
-    <button id="parentSel" onclick="parentSel()"><img src="icons/parent.svg">Parent</button>
+    
+    <button onclick="fixSel()"><img src="icons/fix.svg">Fix</button>
+    
   </div>
   
   <!-- Shading Modes -->
   <div id="viewModePanel">
-  <button id="wireframeShading"><img src="icons/shading_wire.svg"></button>
-  <button id="solidShading"><img src="icons/shading_solid.svg"></button>
-  <button id="textureShading"><img src="icons/shading_texture.svg"></button>
-  <button id="renderedShading"><img src="icons/shading_rendered.svg"></button>
-</div>
+    <button id="wireframeShading"><img src="icons/shading_wire.svg"></button>
+    <button id="solidShading"><img src="icons/shading_solid.svg"></button>
+    <button id="textureShading"><img src="icons/shading_texture.svg"></button>
+    <button id="renderedShading"><img src="icons/shading_rendered.svg"></button>
+  </div>
+
+  <!-- Undo y Redo -->
+  <div id="undoRedo">
+    <button id="undo" onclick="undoRedoManager.undo()"><img src="icons/undo.svg"></button>
+    <button id="" onclick="undoRedoManager.redo()"><img src="icons/redo.svg"></button>
+  </div>
   
   <!-- Counters -->
-  <div id="counterContainer">
-    
-    <!-- FPS counter -->
-  <span id="fps-label"class="counter">FPS: <span id="fps-value"></span></span>
-
-  <!-- Object counter -->
-  <span id="object-count"class="counter"></span>
-
-  <!-- Polygon counter -->
-  <div id="polygonCounter"class="counter"></div>
-  </div>
+  <div id="counterContainer"></div>
 
   <!-- Outliner -->
   <div id="outliner">
@@ -434,10 +464,11 @@
       <button onclick="deleteSel()"><img src="icons/trash.svg"></button>
       <button onclick="duplicateSel()"><img src="icons/duplicate.svg"></button>
       <button onclick="groupSel()"><img src="icons/group.svg"></button>
+      <button id="ungroupSel" onclick="ungroupSel"><img src="icons/ugroup.svg"></button>
       <button onclick="hideSel()"><img src="icons/hide_off.svg"></button>
       <button onclick="renameSel()"><img src="icons/rename.svg"></button>
       <button onclick="lockSel()"><img src="icons/unlocked.svg" id="lock"></button>
-      <button id="parentSel" onclick="parentSel()"><img src="icons/parent.svg"></button>
+      <button onclick="parentSel()"><img src="icons/parent.svg"></button>
     </div>
   </div>
 
@@ -470,20 +501,20 @@
   <!-- Material Mode -->
   <div id="materialMode" style="display: none">
     <div id="materialsDiv"></div>
-    <div id="materialPropertiesDiv"></div>
+    <div id="materialPropertiesDiv">
+      
+    </div>
   </div>
 
   <!-- Animation Mode-->
   <div id="animationMode" style="display: none">
     
   <div id="keyframeExtraButtons">
-    <button id="copyButton">copy</button>
+    <button id="copyButton">
+    <img src="icons/duplicate.svg" alt="Copy">
+  </button>
     
-    <button onclick="loadHDRIAsSkybox()" id="exportButton">Export</button>
-    
-    <button id="importButton">Import</button>
-    
-    <button id="clearAnimation">Clear</button>
+    <button id="clearAnimation"><img src="icons/trash.svg"></button>
   </div>
     
   <div id="keyframeButtons">
@@ -592,5 +623,5 @@
   <script src="sceneView.js"></script>
   <script src="animationSystem.js"></script>
   <script src="renderEngine.js"></script>
-
+  <script src="undoRedoManager.js"></script>
 </html>

@@ -1,215 +1,370 @@
-const importBtn = document.getElementById('importBtn');
-const fileInput = document.getElementById('fileInput');
-const progressBar = document.getElementById('progressBar');
-const progress = document.getElementById('progress');
+function importOBJ() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.obj';
 
-function showProgressBar() {
-  progressBar.style.display = 'block';
-}
-function hideProgressBar() {
-  progressBar.style.display = 'none';
-}
+  input.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      console.error('No se seleccionó ningún archivo.');
+      return;
+    }
 
-importBtn.addEventListener('click', () => {
-  fileInput.click();
-});
-fileInput.addEventListener('change', (event) => {
-  const file = event.target.files[0];
-  const extension = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
 
-  if (extension === 'gltf' || extension === 'glb') {
-    importGLTF(file);
-  } else if (extension === 'obj') {
-    importOBJ(file);
-  } else if (extension === 'fbx') {
-    importFBX(file);
-  } else {
-    alert('Formato de archivo no soportado.');
-  }
-});
+    reader.onload = function() {
+      const text = reader.result;
 
-function updateProgressBar(event) {
-  if (event.lengthComputable) {
-    const percentComplete = (event.loaded / event.total) * 100;
-    progress.style.width = percentComplete + '%';
-    progress.textContent = Math.round(percentComplete) + '%';
-  }
-}
-function resetProgressBar() {
-  progress.style.width = '0%';
-  progress.textContent = '0%';
-}
+      const loader = new THREE.OBJLoader();
+      try {
+        const obj = loader.parse(text);
 
-function importGLTF(file) {
-  showProgressBar();
-  const reader = new FileReader();
-  reader.onloadstart = resetProgressBar;
-  reader.onprogress = updateProgressBar;
-  reader.onload = function(e) {
-    const contents = e.target.result;
-    const loader = new THREE.GLTFLoader();
-    loader.parse(contents, '', (gltf) => {
-      gltf.scene.traverse((child) => {
-        if (child.isMesh) {
-          child.userData.SelectedObject = false;
-          child.castShadow = true;
-          child.receiveShadow = true;
-          child.material.needsUpdate = true;
+        // Verificar si previewScene existe
+        if (typeof previewScene !== 'undefined' && previewScene) {
+          previewScene.add(obj);
+          console.log('Modelo OBJ importado a previewScene.');
+        } else {
+          scene.add(obj);
+          console.log('Modelo OBJ importado directamente a scene.');
         }
+      } catch (error) {
+        console.error('Error al cargar el modelo OBJ:', error);
+      }
+    };
+
+    reader.onerror = function(error) {
+      console.error('Error al leer el archivo:', error);
+    };
+
+    reader.readAsText(file);
+  });
+
+  input.click();
+}
+function importFBX() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.fbx';
+
+  input.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      console.error('No se seleccionó ningún archivo.');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      const arrayBuffer = reader.result;
+
+      const loader = new THREE.FBXLoader();
+      try {
+        const fbx = loader.parse(arrayBuffer);
+
+        // Verificar si previewScene existe
+        if (typeof previewScene !== 'undefined' && previewScene) {
+          previewScene.add(fbx);
+          console.log('Modelo FBX importado a previewScene.');
+        } else {
+          scene.add(fbx);
+          console.log('Modelo FBX importado directamente a scene.');
+        }
+      } catch (error) {
+        console.error('Error al cargar el modelo FBX:', error);
+      }
+    };
+
+    reader.onerror = function(error) {
+      console.error('Error al leer el archivo:', error);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+
+  input.click();
+}
+function importGLTF() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.gltf,.glb';
+
+  input.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      console.error('No se seleccionó ningún archivo.');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      const arrayBuffer = reader.result;
+
+      const loader = new THREE.GLTFLoader();
+      try {
+        loader.parse(arrayBuffer, '', function(gltf) {
+          // Si no existe previewScene, se añade directamente a la escena principal
+          if (typeof previewScene === 'undefined') {
+            scene.add(gltf.scene); // Usamos 'scene' en lugar de 'previewScene'
+          } else {
+            previewScene.add(gltf.scene);
+          }
+          console.log('Modelo GLTF importado correctamente.');
+        });
+      } catch (error) {
+        console.error('Error al cargar el modelo GLTF:', error);
+      }
+    };
+
+    reader.onerror = function(error) {
+      console.error('Error al leer el archivo:', error);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+
+  input.click();
+}
+function importSTL() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.stl';
+
+  input.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      console.error('No se seleccionó ningún archivo.');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      const arrayBuffer = reader.result;
+
+      const loader = new THREE.STLLoader();
+      try {
+        const geometry = loader.parse(arrayBuffer);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0055ff });
+        const mesh = new THREE.Mesh(geometry, material);
+
+        // Si no existe previewScene, se añade directamente a la escena principal
+        if (typeof previewScene === 'undefined') {
+          scene.add(mesh); // Usamos 'scene' en lugar de 'previewScene'
+        } else {
+          previewScene.add(mesh);
+        }
+        console.log('Modelo STL importado correctamente.');
+      } catch (error) {
+        console.error('Error al cargar el modelo STL:', error);
+      }
+    };
+
+    reader.onerror = function(error) {
+      console.error('Error al leer el archivo:', error);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+
+  input.click();
+}
+function importZIP() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.zip';
+
+  input.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      console.error('No se seleccionó ningún archivo.');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      const arrayBuffer = reader.result;
+
+      JSZip.loadAsync(arrayBuffer).then(function(zip) {
+        zip.forEach(function(relativePath, zipEntry) {
+          const fileName = zipEntry.name.toLowerCase();
+
+          if (fileName.endsWith('.obj')) {
+            zipEntry.async('arraybuffer').then(function(content) {
+              const loader = new THREE.OBJLoader();
+              const object = loader.parse(content);
+
+              // Si no existe previewScene, se añade directamente a la escena principal
+              if (typeof previewScene === 'undefined') {
+                scene.add(object); // Usamos 'scene' en lugar de 'previewScene'
+              } else {
+                previewScene.add(object);
+              }
+              console.log('Modelo OBJ cargado.');
+            });
+          } else if (fileName.endsWith('.fbx')) {
+            zipEntry.async('arraybuffer').then(function(content) {
+              const loader = new THREE.FBXLoader();
+              const object = loader.parse(content);
+
+              // Si no existe previewScene, se añade directamente a la escena principal
+              if (typeof previewScene === 'undefined') {
+                scene.add(object); // Usamos 'scene' en lugar de 'previewScene'
+              } else {
+                previewScene.add(object);
+              }
+              console.log('Modelo FBX cargado.');
+            });
+          } else if (fileName.endsWith('.gltf') || fileName.endsWith('.glb')) {
+            zipEntry.async('arraybuffer').then(function(content) {
+              const loader = new THREE.GLTFLoader();
+              loader.parse(content, '', function(gltf) {
+                // Si no existe previewScene, se añade directamente a la escena principal
+                if (typeof previewScene === 'undefined') {
+                  scene.add(gltf.scene); // Usamos 'scene' en lugar de 'previewScene'
+                } else {
+                  previewScene.add(gltf.scene);
+                }
+                console.log('Modelo GLTF cargado.');
+              });
+            });
+          } else if (fileName.endsWith('.stl')) {
+            zipEntry.async('arraybuffer').then(function(content) {
+              const loader = new THREE.STLLoader();
+              const geometry = loader.parse(content);
+              const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+              const mesh = new THREE.Mesh(geometry, material);
+
+              // Si no existe previewScene, se añade directamente a la escena principal
+              if (typeof previewScene === 'undefined') {
+                scene.add(mesh); // Usamos 'scene' en lugar de 'previewScene'
+              } else {
+                previewScene.add(mesh);
+              }
+              console.log('Modelo STL cargado.');
+            });
+          }
+        });
+      }).catch(function(error) {
+        console.error('Error al leer el archivo ZIP:', error);
       });
-      scene.add(gltf.scene);
-    });
-    resetProgressBar();
-    hideProgressBar();
-  };
-  reader.onerror = function() {
-    alert("Error al leer el archivo.");
-    resetProgressBar();
-    hideProgressBar();
-  };
-  reader.readAsArrayBuffer(file);
+    };
+
+    reader.onerror = function(error) {
+      console.error('Error al leer el archivo:', error);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+
+  input.click();
 }
-function importOBJ(file) {
-  showProgressBar();
-  const reader = new FileReader();
-  reader.onloadstart = resetProgressBar;
-  reader.onprogress = updateProgressBar;
-  reader.onload = function(e) {
-    const contents = e.target.result;
-    const loader = new THREE.OBJLoader();
-    const object = loader.parse(contents);
-    object.traverse((child) => {
-      if (child.isMesh) {
-        child.userData.SelectedObject = false;
-        child.castShadow = true;
-        child.receiveShadow = true;
-        child.material.needsUpdate = true;
+
+function addToScene() {
+  if (previewScene) {
+    previewScene.traverse(function(object) {
+      if ((object.isMesh && object.userData.id !== 'exclude') ||
+        (object.isGroup && object.children.some(child => child.isMesh && child.userData.id !== 'exclude'))) {
+        scene.add(object);
       }
     });
-    scene.add(object);
-    resetProgressBar();
-    hideProgressBar();
-  };
-  reader.onerror = function() {
-    alert("Error al leer el archivo.");
-    resetProgressBar();
-    hideProgressBar();
-  };
-  reader.readAsText(file);
-}
-function importFBX(file) {
-  showProgressBar();
-  const reader = new FileReader();
-  reader.onloadstart = resetProgressBar;
-  reader.onprogress = updateProgressBar;
-  reader.onload = function(e) {
-    const contents = e.target.result;
-    const loader = new THREE.FBXLoader();
-    const object = loader.parse(contents);
-    object.traverse((child) => {
-      if (child.isMesh) {
-        child.userData.SelectedObject = false;
-        child.castShadow = true;
-        child.receiveShadow = true;
-        child.material.needsUpdate = true;
-      }
-    });
-    scene.add(object);
-    resetProgressBar();
-    hideProgressBar();
-  };
-  reader.onerror = function() {
-    alert("Error al leer el archivo.");
-    resetProgressBar();
-    hideProgressBar();
-  };
-  reader.readAsArrayBuffer(file);
+  }
 }
 
 /* Mesh */
+function addObjectToScene(object) {
+  scene.add(object);
+  updateOutliner();
+  undoRedoManager.addAction({
+    undo: () => {
+      scene.remove(object);
+      updateOutliner();
+    },
+    redo: () => {
+      scene.add(object);
+      updateOutliner();
+    }
+  });
+}
+
 function addCube() {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const cube = new THREE.Mesh(geometry, material);
-  
   cube.name = "cube";
   cube.position.set(0, 0, 0);
   cube.castShadow = true;
   cube.receiveShadow = true;
-  scene.add(cube);
-  updateOutliner()
+
+  addObjectToScene(cube);
 }
 function addSphere() {
   const geometry = new THREE.SphereGeometry(0.5, 16, 10);
-  const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF});
+  const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const sphere = new THREE.Mesh(geometry, material);
-
   sphere.name = "sphere";
   sphere.position.set(0, 0, 0);
   sphere.castShadow = true;
   sphere.receiveShadow = true;
-  scene.add(sphere);
-  updateOutliner()
+
+  addObjectToScene(sphere);
 }
 function addPlane() {
   const geometry = new THREE.PlaneGeometry(2, 2);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide });
   const plane = new THREE.Mesh(geometry, material);
-
   plane.name = "plane";
   plane.position.set(0, 0, 0);
   plane.rotation.x = Math.PI / -2;
   plane.receiveShadow = true;
-  scene.add(plane);
-  updateOutliner()
+
+  addObjectToScene(plane);
 }
 function addCylinder() {
   const geometry = new THREE.CylinderGeometry(0.5, 0.5, 1.5, 32);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const cylinder = new THREE.Mesh(geometry, material);
-
   cylinder.name = "cylinder";
   cylinder.position.set(0, 0, 0);
   cylinder.castShadow = true;
   cylinder.receiveShadow = true;
-  scene.add(cylinder);
-  updateOutliner()
+
+  addObjectToScene(cylinder);
 }
 function addPyramid() {
   const geometry = new THREE.ConeGeometry(1, 1.5, 4);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const pyramid = new THREE.Mesh(geometry, material);
-
-  pyramid.castShadow = true;
-  pyramid.receiveShadow = true;
   pyramid.name = "pyramid";
   pyramid.position.set(0, 0, 0);
-  scene.add(pyramid);
-  updateOutliner()
+  pyramid.castShadow = true;
+  pyramid.receiveShadow = true;
+
+  addObjectToScene(pyramid);
 }
 function addToroid() {
   const geometry = new THREE.TorusGeometry(1, 0.4, 16, 100);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const toroid = new THREE.Mesh(geometry, material);
-
   toroid.name = "toroid";
   toroid.position.set(0, 0, 0);
-  scene.add(toroid);
   toroid.castShadow = true;
   toroid.receiveShadow = true;
-  updateOutliner()
+
+  addObjectToScene(toroid);
 }
 function addCircle() {
   const geometry = new THREE.CircleGeometry(1, 32);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const circle = new THREE.Mesh(geometry, material);
-
   circle.name = "circle";
   circle.position.set(0, 0, 0);
-  scene.add(circle);
   circle.castShadow = true;
   circle.receiveShadow = true;
-  updateOutliner()
+
+  addObjectToScene(circle);
 }
 function addMirror() {
   const mirrorGeometry = new THREE.PlaneGeometry(5, 5);
@@ -219,18 +374,15 @@ function addMirror() {
     textureHeight: window.innerHeight * window.devicePixelRatio,
     color: 0xaaaaaa,
   });
-
   mirror.position.set(0, 0, 0);
   mirror.rotation.set(-Math.PI / 2, 0, 0);
-  mirror.name = "mirror object"
-  scene.add(mirror);
-  updateOutliner()
+  mirror.name = "mirror object";
+
+  addObjectToScene(mirror);
 }
 function addMonkey() {
   const loader = new THREE.OBJLoader();
-  loader.load('assets/suzanne.obj', function(object) {
-    object.scale.set(0.5, 0.5, 0.5);
-    object.position.set(0, 0, 0);
+  loader.load('assets/Models/suzanne.obj', function(object) {
 
     const material = new THREE.MeshStandardMaterial({
       color: 0xffffff,
@@ -240,10 +392,45 @@ function addMonkey() {
     object.traverse(function(child) {
       if (child.isMesh) {
         child.material = material;
-        scene.add(child);
+        child.scale.set(0.5, 0.5, 0.5);
+        addObjectToScene(child);
       }
     });
   });
+}
+
+function addTarget() {
+  const size = 0.3;
+
+  const geometryX = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-size, 0, 0),
+    new THREE.Vector3(size, 0, 0),
+  ]);
+
+  const geometryY = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, -size, 0),
+    new THREE.Vector3(0, size, 0),
+  ]);
+
+  const geometryZ = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, -size),
+    new THREE.Vector3(0, 0, size),
+  ]);
+
+  const material = new THREE.LineBasicMaterial({ color: 0xff5000, linewidth: 2 });
+
+  const lineX = new THREE.Line(geometryX, material);
+  const lineY = new THREE.Line(geometryY, material);
+  const lineZ = new THREE.Line(geometryZ, material);
+
+  const emptyTarget = new THREE.Object3D();
+  emptyTarget.add(lineX, lineY, lineZ);
+
+  emptyTarget.userData.id = 'cameraTarget';
+  emptyTarget.name = 'Target';
+  emptyTarget.position.set(0, 0, 0);
+
+  scene.add(emptyTarget);
 }
 
 /* Light */
@@ -251,18 +438,14 @@ function addPointLight() {
   const pointLight = new THREE.PointLight(0xffffff, 1, 100);
   pointLight.position.set(0, 5, 0);
   pointLight.castShadow = true;
-  pointLight.name = 'Point Light';
   const lightHelper = new THREE.PointLightHelper(pointLight, 0.5);
-  scene.add(pointLight);
-  scene.add(lightHelper);
-  updateOutliner()
+  addObjectToScene(pointLight, addLightIcon());
 }
 function addDirectionalLight() {
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  directionalLight.position.set(7, 4, 3);
+  directionalLight.position.set(1, 2, -1);
   directionalLight.castShadow = true;
-  directionalLight.name = 'Sun Light';
-  scene.add(directionalLight);
+  addObjectToScene(directionalLight, addLightIcon());
 }
 function addSpotLight() {
   const spotLight = new THREE.SpotLight(0xffffff, 1);
@@ -270,42 +453,27 @@ function addSpotLight() {
   spotLight.castShadow = true;
   spotLight.angle = Math.PI / 1.1;
   spotLight.distance = 50;
-  spotLight.name = 'Spot Light'
-  scene.add(spotLight);
-  updateOutliner()
- 
-
   const spotLightHelper = new THREE.SpotLightHelper(spotLight);
-  scene.add(spotLightHelper);
+  addObjectToScene(spotLight, addLightIcon());
 }
 function addAmbientLight() {
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-  ambientLight.name = 'Ambient Light';
-  scene.add(ambientLight);
-  updateOutliner()
+  addObjectToScene(ambientLight, addLightIcon());
 }
 function addHemisphereLight() {
   const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x0000ff, 0.5);
   hemisphereLight.position.set(0, 0, 0);
   hemisphereLight.castShadow = false;
-  hemisphereLight.name = 'Hemisphere Light';
-  scene.add(hemisphereLight);
-
   const helper = new THREE.HemisphereLightHelper(hemisphereLight, 1);
-  scene.add(helper);
-  updateOutliner()
+  addObjectToScene(hemisphereLight, addLightIcon());
 }
 function addRectAreaLight() {
   const rectAreaLight = new THREE.RectAreaLight(0xffffff, 1, 5, 5);
   rectAreaLight.position.set(0, 2, 0);
   rectAreaLight.rotation.x = Math.PI / 2;
   rectAreaLight.castShadow = false;
-  rectAreaLight.name = 'Area Light';
-  scene.add(rectAreaLight);
-
   const rectAreaLightHelper = new THREE.RectAreaLightHelper(rectAreaLight);
-  scene.add(rectAreaLightHelper);
-  updateOutliner();
+  addObjectToScene(rectAreaLight, addLightIcon());
 }
 
 /* Line */
@@ -317,15 +485,25 @@ function addLine() {
   ];
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
   const line = new THREE.Line(geometry, material);
-  line.name = 'Line'
+  line.name = 'Line';
   scene.add(line);
-  updateOutliner()
+  updateOutliner();
+  undoRedoManager.addAction({
+    undo: () => {
+      scene.remove(line);
+      updateOutliner();
+    },
+    redo: () => {
+      scene.add(line);
+      updateOutliner();
+    }
+  });
 }
 function addDashedLine() {
   const material = new THREE.LineDashedMaterial({
     color: 0xffffff,
-    dashSize: 3, // Tamaño de las rayas
-    gapSize: 1, // Espaciado entre las rayas
+    dashSize: 3,
+    gapSize: 1,
   });
   const points = [
     new THREE.Vector3(-5, 0, 0),
@@ -335,7 +513,17 @@ function addDashedLine() {
   const line = new THREE.Line(geometry, material);
   line.computeLineDistances();
   scene.add(line);
-  updateOutliner()
+  updateOutliner();
+  undoRedoManager.addAction({
+    undo: () => {
+      scene.remove(line);
+      updateOutliner();
+    },
+    redo: () => {
+      scene.add(line);
+      updateOutliner();
+    }
+  });
 }
 function addLineSegments() {
   const material = new THREE.LineBasicMaterial({ color: 0xffffff });
@@ -347,9 +535,19 @@ function addLineSegments() {
   ];
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
   const lineSegments = new THREE.LineSegments(geometry, material);
-  lineSegments.name = 'Line Segments'
+  lineSegments.name = 'Line Segments';
   scene.add(lineSegments);
-  updateOutliner()
+  updateOutliner();
+  undoRedoManager.addAction({
+    undo: () => {
+      scene.remove(lineSegments);
+      updateOutliner();
+    },
+    redo: () => {
+      scene.add(lineSegments);
+      updateOutliner();
+    }
+  });
 }
 function addThickLine() {
   const material = new THREE.LineDashedMaterial({
@@ -357,9 +555,8 @@ function addThickLine() {
     linewidth: 4,
     scale: 1,
     dashSize: 3,
-    gapSize: 1 
+    gapSize: 1
   });
-
   const points = [
     new THREE.Vector3(-5, 0, 0),
     new THREE.Vector3(5, 0, 0)
@@ -367,9 +564,19 @@ function addThickLine() {
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
   const thickLine = new THREE.Line(geometry, material);
   thickLine.computeLineDistances();
-  thickLine.name = 'Thick Line'
+  thickLine.name = 'Thick Line';
   scene.add(thickLine);
-  updateOutliner()
+  updateOutliner();
+  undoRedoManager.addAction({
+    undo: () => {
+      scene.remove(thickLine);
+      updateOutliner();
+    },
+    redo: () => {
+      scene.add(thickLine);
+      updateOutliner();
+    }
+  });
 }
 function addCurve() {
   const material = new THREE.LineBasicMaterial({
@@ -383,11 +590,21 @@ function addCurve() {
     new THREE.Vector3(5, 0, 0)
   ]);
 
-  const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(50)); 
+  const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(50));
   const curveLine = new THREE.Line(geometry, material);
-  curveLine.name = 'Curve Line'
+  curveLine.name = 'Curve Line';
   scene.add(curveLine);
-  updateOutliner()
+  updateOutliner();
+  undoRedoManager.addAction({
+    undo: () => {
+      scene.remove(curveLine);
+      updateOutliner();
+    },
+    redo: () => {
+      scene.add(curveLine);
+      updateOutliner();
+    }
+  });
 }
 function addArrow() {
   const material = new THREE.LineBasicMaterial({
@@ -399,8 +616,8 @@ function addArrow() {
   const arrowHeadWidth = 0.5;
 
   const points = [
-    new THREE.Vector3(0, 0, 0), // Punto inicial
-    new THREE.Vector3(arrowLength, 0, 0) // Punto final
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(arrowLength, 0, 0)
   ];
 
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -411,13 +628,77 @@ function addArrow() {
   const arrowHeadMesh = new THREE.Mesh(arrowHead, arrowHeadMaterial);
   arrowHeadMesh.position.set(arrowLength, 0, 0);
   arrowHeadMesh.rotation.z = Math.PI / 2;
-  arrowHead.name = 'Arrow'
+  arrowHeadMesh.name = 'Arrow';
   scene.add(arrowLine);
   scene.add(arrowHeadMesh);
-  updateOutliner()
+  updateOutliner();
+  undoRedoManager.addAction({
+    undo: () => {
+      scene.remove(arrowLine);
+      scene.remove(arrowHeadMesh);
+      updateOutliner();
+    },
+    redo: () => {
+      scene.add(arrowLine);
+      scene.add(arrowHeadMesh);
+      updateOutliner();
+    }
+  });
+}
+
+function addCamera() {
+  const cameraObjLoader = new THREE.OBJLoader();
+
+  cameraObjLoader.load('assets/Models/camera.obj', function(obj) {
+    let cameraLines;
+
+    obj.traverse((child) => {
+      if (child.isMesh) {
+        const edges = new THREE.EdgesGeometry(child.geometry);
+        cameraLines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+          color: 0x000000,
+          linewidth: 2,
+        }));
+        cameraLines.userData.exclude = true;
+        cameraLines.userData.id = 'camera';
+        cameraLines.rotation.y = THREE.MathUtils.degToRad(90);
+      }
+    });
+
+    if (!cameraLines) {
+      console.error('No se encontró geometría válida en el archivo OBJ para las líneas de la cámara.');
+      return;
+    }
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.name = 'Camera';
+    camera.userData.id = 'camera';
+    camera.position.set(-2, 2, 2);
+    camera.rotation.y = THREE.MathUtils.degToRad(-90);
+    camera.lookAt(0, 0, 0);
+    
+    cameraLines.position.set(0, 0, 0);
+    camera.add(cameraLines);
+
+    scene.add(camera);
+
+    window.addEventListener('touchstart', function(event) {
+      const mouse = new THREE.Vector2();
+      mouse.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(scene.children, true);
+    });
+  });
 }
 
 
-/* Scene Add */
-addDirectionalLight();
+// Scene add
+addCamera();
 addCube();
+
+
+
+/* Test */

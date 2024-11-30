@@ -70,19 +70,23 @@ function updateOutliner() {
     itemDiv.style.backgroundColor = object.userData.SelectedObject ? accentPrimary : '';
 
     itemDiv.addEventListener('click', () => {
-      transformControls.detach();
       const isSelected = object.userData.SelectedObject;
 
-      if (isSelected) {
-        object.userData.SelectedObject = false;
-      } else {
-        scene.traverse((otherObject) => {
-          otherObject.userData.SelectedObject = false;
-        });
+      // Deseleccionamos todos los objetos antes de seleccionar el nuevo
+      scene.traverse((otherObject) => {
+        otherObject.userData.SelectedObject = false;
+      });
+
+      // Si el objeto no estaba seleccionado, lo seleccionamos y adjuntamos al transformControls
+      if (!isSelected) {
         object.userData.SelectedObject = true;
         transformControls.attach(object);
+      } else {
+        // Si el objeto estaba seleccionado, deseleccionamos
+        transformControls.detach();
       }
 
+      // Actualizamos el Outliner
       updateOutliner();
     });
 
@@ -109,6 +113,3 @@ function updateOutliner() {
     addObjectToOutliner(object, outlinerDiv);
   });
 }
-
-
-updateOutliner()

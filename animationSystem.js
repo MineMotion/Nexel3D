@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cambiar la imagen según el estado del autoKey
   if (autoKeyActive) {
-    autoKeyButton.innerHTML = '<img src="icons/autokey_off.svg" alt="Auto Keyframe On">';
+    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe On">';
     autoKeyButton.style.backgroundColor = 'var(--accent-secondary)';
   } else {
-    autoKeyButton.innerHTML = '<img src="icons/autokey_off.svg" alt="Auto Keyframe Off">';
+    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe Off">';
     autoKeyButton.style.backgroundColor = ''; 
   }
 });
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? '<img src="/icons/keyframe_add.svg" alt="Change">'
         : '<img src="/icons/keyframe_add.svg" alt="Add">';
     } else {
-      keyframeButton.innerHTML = '<img src="icons/keyframe.svg" alt="Add">';
+      keyframeButton.innerHTML = '<img src="/icons/keyframe.svg" alt="Add">';
     }
   }
 }
@@ -101,38 +101,40 @@ document.addEventListener('DOMContentLoaded', () => {
     updateKeyframeButtonText();
   });
 
-  const copyButton = document.getElementById('copyButton');
-  copyButton.addEventListener('click', () => {
-    const selectedObject = getSelectedObject();
-    if (!selectedObject) {
-      alert('Por favor, selecciona un objeto primero.');
-      return;
-    }
+const copyButton = document.getElementById('copyButton');
+copyButton.addEventListener('click', () => {
+  const selectedObject = getSelectedObject();
+  if (!selectedObject) {
+    alert('Por favor, selecciona un objeto primero.');
+    return;
+  }
 
-    if (copyButton.textContent === 'copy') {
+  const icon = copyButton.querySelector('img');
+
+  if (icon.src.includes('duplicate.svg')) {
+    let keyframes = keyframesByObject.get(selectedObject) || [];
+    const currentKeyframe = keyframes.find(k => k.frame === currentFrame);
+
+    if (currentKeyframe) {
+      copiedKeyframe = { ...currentKeyframe };
+      icon.src = 'icons/paste_down.svg';
+    } else {
+      alert('No hay keyframe para copiar en el frame actual.');
+    }
+  } else if (icon.src.includes('paste_down.svg')) {
+    if (copiedKeyframe) {
       let keyframes = keyframesByObject.get(selectedObject) || [];
-      const currentKeyframe = keyframes.find(k => k.frame === currentFrame);
-
-      if (currentKeyframe) {
-        copiedKeyframe = { ...currentKeyframe };
-        copyButton.textContent = 'Paste';
-      } else {
-        alert('No hay keyframe para copiar en el frame actual.');
-      }
-    } else if (copyButton.textContent === 'Paste') {
-      if (copiedKeyframe) {
-        let keyframes = keyframesByObject.get(selectedObject) || [];
-        const newKeyframe = { ...copiedKeyframe, frame: currentFrame };
-        keyframes.push(newKeyframe);
-        keyframes.sort((a, b) => a.frame - b.frame);
-        keyframesByObject.set(selectedObject, keyframes);
-        copiedKeyframe = null;
-        copyButton.textContent = 'copy';
-        renderKeyframes();
-        updateKeyframeButtonText();
-      }
+      const newKeyframe = { ...copiedKeyframe, frame: currentFrame };
+      keyframes.push(newKeyframe);
+      keyframes.sort((a, b) => a.frame - b.frame);
+      keyframesByObject.set(selectedObject, keyframes);
+      copiedKeyframe = null;
+      icon.src = 'icons/duplicate.svg';
+      renderKeyframes();
+      updateKeyframeButtonText();
     }
-  });
+  }
+});
 
   function getSelectedObject() {
   let selectedObject = null;
@@ -262,10 +264,10 @@ document.addEventListener('DOMContentLoaded', () => {
   
   /* Pause Button */
   const pauseButton = document.getElementById('pauseButton');
-  pauseButton.innerHTML = isPaused ? '<img src="icons/play.svg" alt="Play">' : '<img src="icons/pause.svg" alt="Pause">';
+  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
   pauseButton.addEventListener('click', () => {
   isPaused = !isPaused;
-  pauseButton.innerHTML = isPaused ? '<img src="icons/play.svg" alt="Play">' : '<img src="icons/pause.svg" alt="Pause">';
+  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
 
   if (!isPaused) {
     pauseButton.style.backgroundColor = 'var(--accent-secondary)';
@@ -331,7 +333,7 @@ function detectObjectChanges() {
   
   const hasPositionChanged = !selectedObject.position.equals(lastPosition);
   const hasRotationChanged = !selectedObject.rotation.equals(lastRotation);
-  const hasScaleChanged = !selectedObject.scale.equals(lastScale);
+  const hasScaleChanged = !selectedObject.scale.equals(lastScale); // Corregido la variable
 
   if (autoKeyActive && (hasPositionChanged || hasRotationChanged || hasScaleChanged)) {
     addKeyframeIfChanged(selectedObject);

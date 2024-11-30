@@ -8,9 +8,9 @@ function init() {
   // Crear la cámara
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(5, 5, 5);
+  camera.userData.id = 'mainCamera'; 
   
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(5, 5, 5);
+  
   
   // Cambio de FOV
   function checkOrientation() {
@@ -64,6 +64,7 @@ if (positions[i + 2] === 0) {
   ambientLight.userData.exclude = true;
 
   // Renderizador
+  
   renderer = new THREE.WebGLRenderer({ antialias: true});
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;

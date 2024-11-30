@@ -12,25 +12,20 @@ window.addEventListener('touchstart', (event) => {
     touchStartY = event.touches[0].clientY;
   }
 });
-function isTouchInsideCanvas(event) {
-  const canvases = document.querySelectorAll('canvas');
-  for (let canvas of canvases) {
-    const rect = canvas.getBoundingClientRect();
-    const touchX = event.changedTouches[0].clientX;
-    const touchY = event.changedTouches[0].clientY;
-    if (touchX >= rect.left && touchX <= rect.right && touchY >= rect.top && touchY <= rect.bottom) {
-      return true;
-    }
-  }
-  return false;
-}
 function isTouchOnUIElement(event) {
   const touchX = event.changedTouches[0].clientX;
   const touchY = event.changedTouches[0].clientY;
-  const elements = document.querySelectorAll('button, div');
-  for (let element of elements) {
-    const rect = element.getBoundingClientRect();
-    if (touchX >= rect.left && touchX <= rect.right && touchY >= rect.top && touchY <= rect.bottom) {
+  const touchedElement = document.elementFromPoint(touchX, touchY);
+
+  if (touchedElement) {
+    const ignoredClasses = ["menu", "menu-item", "primary-menu"];
+    const ignoredIDs = ["meshMenu", "addMenu"];
+
+    if (ignoredClasses.some((cls) => touchedElement.classList.contains(cls))) {
+      return true;
+    }
+
+    if (ignoredIDs.includes(touchedElement.id)) {
       return true;
     }
   }
@@ -46,6 +41,8 @@ function seleccionarObjeto(event) {
     if (deltaX < touchThreshold && deltaY < touchThreshold) {
       touch.x = (event.changedTouches[0].clientX / window.innerWidth) * 2 - 1;
       touch.y = -(event.changedTouches[0].clientY / window.innerHeight) * 2 + 1;
+
+      if (isTouchOnUIElement(event)) return;
 
       raycaster.setFromCamera(touch, camera);
       const intersecciones = raycaster.intersectObjects(scene.children, true);
@@ -66,8 +63,6 @@ function seleccionarObjeto(event) {
         objetoSeleccionado = objetoTocado;
 
         console.log("Objeto seleccionado:", objetoTocado.name);
-      } else if (!isTouchInsideCanvas(event) && !isTouchOnUIElement(event)) {
-        deselectObject();
       }
     }
   }
@@ -237,20 +232,27 @@ function removeAllEdgeOutlines() {
       object.remove(object.edges);
       object.edges.geometry.dispose();
       object.edges.material.dispose();
-      object.edges = null;
+      delete object.edges;
     }
   });
 }
 function updateOutlines() {
+  let selectedObjectExists = false;
+
   scene.traverse((object) => {
     const hasBones = object instanceof THREE.Object3D && object.children.some(child => child instanceof THREE.Bone);
 
     if (object instanceof THREE.Mesh && object.userData.SelectedObject && !hasBones) {
+      selectedObjectExists = true;
       if (!object.edges) {
         addEdgeOutline(object);
       }
-    } else {
+    } else if (object.edges) {
       removeEdgeOutline(object);
     }
   });
+
+  if (!selectedObjectExists) {
+    removeAllEdgeOutlines();
+  }
 }

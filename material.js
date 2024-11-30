@@ -1,11 +1,8 @@
-// Función para mostrar las propiedades del material
 function showMaterialProperties(material) {
-  // Limpiar el div de propiedades antes de agregar nuevas
   materialPropertiesDiv.innerHTML = '';
 
-  // Crear formulario para manipular las características del material
   const propertiesForm = `
-    <form id="materialPropertiesForm">
+      <form id="materialPropertiesForm">
       <h3>Material</h3>
       
       <label for="color">Color:</label>

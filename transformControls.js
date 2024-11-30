@@ -93,10 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (clickCount === 1) {
           snapEnabled = !snapEnabled;
           if (snapEnabled) {
-            snapImage.src = 'icons/snap_on.svg';
+            snapImage.src = '/icons/snap_on.svg';
             snapButton.style.backgroundColor = 'var(--accent-secondary)';
           } else {
-            snapImage.src = 'icons/snap_off.svg';
+            snapImage.src = '/icons/snap_off.svg';
             snapButton.style.backgroundColor = '';
           }
         }
@@ -180,3 +180,88 @@ function checkTransformControlsSize() {
 }
 
 window.addEventListener('resize', checkTransformControlsSize);
+
+
+/* Undo System */
+transformControls.addEventListener('dragging-changed', function(event) {
+  const selectedObject = getSelectedObject();
+
+  if (event.value) {
+    if (selectedObject) {
+      initialTransform = {
+        position: selectedObject.position.clone(),
+        rotation: selectedObject.rotation.clone(),
+        scale: selectedObject.scale.clone()
+      };
+
+      console.log('Guardando transformación inicial:', {
+        position: initialTransform.position.toArray(),
+        rotation: initialTransform.rotation.toArray(),
+        scale: initialTransform.scale.toArray()
+      });
+    }
+    controls.enableRotate = false;
+  } else {
+    if (selectedObject && initialTransform) {
+      const finalTransform = {
+        position: selectedObject.position.clone(),
+        rotation: selectedObject.rotation.clone(),
+        scale: selectedObject.scale.clone()
+      };
+
+      console.log('Guardando transformación final:', {
+        position: finalTransform.position.toArray(),
+        rotation: finalTransform.rotation.toArray(),
+        scale: finalTransform.scale.toArray()
+      });
+
+      const undoTransform = {
+        position: initialTransform.position.clone(),
+        rotation: initialTransform.rotation.clone(),
+        scale: initialTransform.scale.clone()
+      };
+
+      undoRedoManager.addAction({
+        undo: function() {
+          const object = getSelectedObject();
+          if (object) {
+            console.log('Deshaciendo a transformación previa:', {
+              position: undoTransform.position.toArray(),
+              rotation: undoTransform.rotation.toArray(),
+              scale: undoTransform.scale.toArray()
+            });
+
+            object.position.copy(undoTransform.position);
+            object.rotation.copy(undoTransform.rotation);
+            object.scale.copy(undoTransform.scale);
+
+            object.updateMatrixWorld(true);
+            transformControls.attach(object);
+            renderer.render(scene, camera);
+          }
+        },
+        redo: function() {
+          const object = getSelectedObject();
+          if (object) {
+            console.log('Rehaciendo a transformación final:', {
+              position: finalTransform.position.toArray(),
+              rotation: finalTransform.rotation.toArray(),
+              scale: finalTransform.scale.toArray()
+            });
+
+            object.position.copy(finalTransform.position);
+            object.rotation.copy(finalTransform.rotation);
+            object.scale.copy(finalTransform.scale);
+
+            object.updateMatrixWorld(true);
+            transformControls.attach(object);
+            renderer.render(scene, camera);
+          }
+        }
+      });
+
+      initialTransform = null;
+    }
+    controls.enableRotate = true;
+  }
+});
