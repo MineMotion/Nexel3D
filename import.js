@@ -1,7 +1,6 @@
 function fastImport() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.obj,.fbx,.gltf,.glb,.stl';
 
   input.onchange = async (event) => {
     const file = event.target.files[0];
@@ -73,7 +72,6 @@ function fastImport() {
 function importOBJ() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.obj';
 
   input.addEventListener('change', function(event) {
     const file = event.target.files[0];
@@ -116,7 +114,6 @@ function importOBJ() {
 function importFBX() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.fbx';
 
   input.addEventListener('change', function(event) {
     const file = event.target.files[0];
@@ -159,8 +156,7 @@ function importFBX() {
 function importGLTF() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.gltf,.glb';
-
+  
   input.addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (!file) {
@@ -201,8 +197,7 @@ function importGLTF() {
 function importSTL() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.stl';
-
+  
   input.addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (!file) {
@@ -245,7 +240,6 @@ function importSTL() {
 function importZIP() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.zip';
 
   input.addEventListener('change', function(event) {
     const file = event.target.files[0];
