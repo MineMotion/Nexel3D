@@ -4,7 +4,6 @@ function animate() {
   renderer.render(scene, camera);
   updateOutlines();
   listMaterials();
-  updatePhysics();
   updateObjectToolsButton();
 }
 
