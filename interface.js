@@ -259,6 +259,33 @@ function createMeshTools() {
   meshToolsDiv.appendChild(shadingOptions);
   meshToolsDiv.appendChild(materialOptions);
 }
+function quickTexture() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+
+  input.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const textureUrl = URL.createObjectURL(file);
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load(textureUrl, () => {
+      const selectedObjects = scene.children.filter(obj => obj.userData.SelectedObject);
+      if (selectedObjects.length === 0) return;
+
+      selectedObjects.forEach(object => {
+        if (object instanceof THREE.Mesh) {
+          object.material.map = texture;
+          object.material.needsUpdate = true;
+        }
+      });
+    });
+  });
+
+  input.click();
+}
 function applySmoothShading() {
   const selectedObject = scene.children.find(child => child.userData.SelectedObject);
   if (selectedObject && selectedObject instanceof THREE.Mesh) {
@@ -788,5 +815,4 @@ function changeColor() {
   }
 }
 
-
-addDirectionalLight()
+addDirectionalLight();
