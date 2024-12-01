@@ -23,7 +23,7 @@ function initWorld() {
 
 /* Physics test */
 function addStaticPhysics(options = {}) {
-  const { mass = 0, shape = 'box', friction = 0.4, restitution = 0 } = options;
+  const { mass = 0, shape = 'box', friction = 0.4, restitution = 0.5 } = options;
 
   let selectedObjects = [];
 
@@ -99,7 +99,7 @@ function addStaticPhysics(options = {}) {
 }
 
 function addPhysics(options = {}) {
-  const { mass = 2, shape = 'box', friction = 0.5, restitution = 1.5 } = options;
+  const { mass = 3, shape = 'box', friction = 0.5, restitution = 0.4 } = options;
 
   let selectedObjects = [];
 
