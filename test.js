@@ -99,7 +99,7 @@ function addStaticPhysics(options = {}) {
 }
 
 function addPhysics(options = {}) {
-  const { mass = 20, shape = 'box', friction = 0.4, restitution = 0 } = options;
+  const { mass = 2, shape = 'box', friction = 0.5, restitution = 1.5 } = options;
 
   let selectedObjects = [];
 
