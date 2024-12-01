@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   let isPaused = true;
-  const totalFrames = 150;
+  const totalFrames = 1500;
   let currentFrame = 0;
 
   const keyframesByObject = new Map();
@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Cambiar la imagen según el estado del autoKey
   if (autoKeyActive) {
-    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe On">';
+    autoKeyButton.innerHTML = '<img src="icons/autokey_off.svg" alt="Auto Keyframe On">';
     autoKeyButton.style.backgroundColor = 'var(--accent-secondary)';
   } else {
-    autoKeyButton.innerHTML = '<img src="/icons/autokey_off.svg" alt="Auto Keyframe Off">';
+    autoKeyButton.innerHTML = '<img src="icons/autokey_off.svg" alt="Auto Keyframe Off">';
     autoKeyButton.style.backgroundColor = ''; 
   }
 });
@@ -54,10 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
         !selectedObject.scale.equals(currentKeyframe.scale);
 
       keyframeButton.innerHTML = hasChanged 
-        ? '<img src="/icons/keyframe_add.svg" alt="Change">'
-        : '<img src="/icons/keyframe_add.svg" alt="Add">';
+        ? '<img src="icons/keyframe_add.svg" alt="Change">'
+        : '<img src="icons/keyframe_add.svg" alt="Add">';
     } else {
-      keyframeButton.innerHTML = '<img src="/icons/keyframe.svg" alt="Add">';
+      keyframeButton.innerHTML = '<img src="icons/keyframe.svg" alt="Add">';
     }
   }
 }
@@ -176,8 +176,12 @@ copyButton.addEventListener('click', () => {
   }
   
   function addFrameNumbers() {
+    
   const timeline = document.getElementById('timeline');
+  const timelineContainer = document.getElementById('timelineContainer');
   const frameWidth = timeline.offsetWidth / totalFrames;
+  const frameNumbersContainer = document.getElementById('timeline-numbers');
+  frameNumbersContainer.innerHTML = '';
 
   for (let i = 0; i < totalFrames; i++) {
     if (i % 10 === 0) {
@@ -185,7 +189,7 @@ copyButton.addEventListener('click', () => {
       number.className = 'frame-number';
       number.innerText = i;
       number.style.left = `${i * frameWidth}px`;
-      timeline.appendChild(number);
+      frameNumbersContainer.appendChild(number);
     }
   }
 }
@@ -205,6 +209,7 @@ copyButton.addEventListener('click', () => {
       default: return t;
     }
   }
+  
   
   document.getElementById('clearAnimation').addEventListener('click', () => {
   keyframesByObject.forEach((keyframes, object) => {
@@ -252,22 +257,24 @@ copyButton.addEventListener('click', () => {
       }
     });
   }
-
+  
+  
   function animate() {
     if (!isPaused) {
       currentFrame = (currentFrame + 1) % totalFrames;
       interpolateKeyframes();
       renderFrameCursor();
       requestAnimationFrame(animate);
-    }
+      updatePhysics();
+    } 
   }
   
   /* Pause Button */
   const pauseButton = document.getElementById('pauseButton');
-  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
+  pauseButton.innerHTML = isPaused ? '<img src="icons/play.svg" alt="Play">' : '<img src="icons/pause.svg" alt="Pause">';
   pauseButton.addEventListener('click', () => {
   isPaused = !isPaused;
-  pauseButton.innerHTML = isPaused ? '<img src="/icons/play.svg" alt="Play">' : '<img src="/icons/pause.svg" alt="Pause">';
+  pauseButton.innerHTML = isPaused ? '<img src="icons/play.svg" alt="Play">' : '<img src="icons/pause.svg" alt="Pause">';
 
   if (!isPaused) {
     pauseButton.style.backgroundColor = 'var(--accent-secondary)';
@@ -279,20 +286,23 @@ copyButton.addEventListener('click', () => {
   
   
   timeline.addEventListener('click', (event) => {
-    const rect = timeline.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const frameWidth = rect.width / totalFrames;
-    currentFrame = Math.floor(x / frameWidth);
+  const rect = timeline.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const frameWidth = rect.width / totalFrames;
+  currentFrame = Math.floor(x / frameWidth);
 
-    if (currentFrame >= totalFrames) {
-      currentFrame = totalFrames - 1;
-    }
+  if (currentFrame >= totalFrames) {
+    currentFrame = totalFrames - 1;
+  }
 
-    interpolateKeyframes();
-    renderKeyframes();
-    renderFrameCursor();
-    updateKeyframeButtonText();
-  });
+  interpolateKeyframes();
+  renderKeyframes();
+  renderFrameCursor();
+  updateKeyframeButtonText();
+
+  const videoTime = (currentFrame / totalFrames) * videoElement.duration;
+  setVideoTime(videoTime);
+});
 
   const nextButton = document.getElementById('nextButton');
   nextButton.addEventListener('click', () => {
@@ -312,6 +322,7 @@ copyButton.addEventListener('click', () => {
   const prevButton = document.getElementById('prevButton');
   prevButton.addEventListener('click', () => {
     currentFrame = 0;
+    resetVideo();
     renderKeyframes();
     renderFrameCursor();
     updateKeyframeButtonText();
@@ -322,7 +333,7 @@ copyButton.addEventListener('click', () => {
   let lastScale = null;
 
 function detectObjectChanges() {
-  const selectedObject = getSelectedObject(); // Corregido la llamada a getSelectedObject
+  const selectedObject = getSelectedObject();
   if (!selectedObject) return;
 
   if (!lastPosition || !lastRotation || !lastScale) {
