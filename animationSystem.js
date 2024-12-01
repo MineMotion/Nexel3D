@@ -266,7 +266,11 @@ copyButton.addEventListener('click', () => {
       renderFrameCursor();
       requestAnimationFrame(animate);
       updatePhysics();
-    } 
+      playVideo();
+      
+    } else {
+      pauseVideo();
+    }
   }
   
   /* Pause Button */

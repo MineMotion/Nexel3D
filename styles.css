@@ -808,7 +808,6 @@ button.active {
   transform: translateX(-50%);
 }
 
-
 #timelineContainer {
   display: flex;
   flex-wrap: wrap;
@@ -865,15 +864,17 @@ button.active {
 }
 
 .frame-number {
-  display: flex;
-  top: 105%;
-  position: fixed;
-  bottom: 0;
+  display: block;
+  top: 0%;
+  position: absolute;
+  bottom: 20px;
   font-size: 8px;
   font-weight: bold;
   color: var(--txt-secondary);
   transform: translateX(-50%);
 }
+
+
 
 
 /* Estilo para el modal */
@@ -1088,6 +1089,58 @@ textarea {
   max-width: 30%;
   height: auto;
   border-radius: 4px;
+}
+
+#floatingTab {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 250px;
+  background: #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: none; /* Inicialmente oculto */
+}
+
+#floatingButtons {
+  display: flex;
+  justify-content: space-between;
+  background-color: #444;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 8px;
+}
+
+#floatingButtons button {
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+#floatingButtons button.active {
+  color: #ff6600; /* Color de acento */
+}
+
+#floatingContent {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+}
+
+#floatingContent > div {
+  display: none;
+  font-size: 12px;
+  color: #fff;
+  padding: 4px 0;
+}
+
+#floatingContent > div.active {
+  display: block;
 }
 
 @media (orientation: landscape) {
