@@ -23,89 +23,158 @@ function initWorld() {
 
 /* Physics test */
 function addStaticPhysics(options = {}) {
-  const { mass = 0, shape = 'box', friction = 0.3, restitution = 0.3 } = options;
+  const { mass = 0, shape = 'box', friction = 0.4, restitution = 0 } = options;
 
-  let selectedObject = null;
+  let selectedObjects = [];
 
+  // Buscar todos los objetos seleccionados
   scene.traverse((object) => {
     if (object.userData.SelectedObject) {
-      selectedObject = object;
+      selectedObjects.push(object);
     }
   });
 
-  if (!selectedObject) {
-    console.warn('No hay ningún objeto seleccionado.');
+  if (selectedObjects.length === 0) {
+    console.warn('No hay objetos seleccionados.');
     return;
   }
 
-  const { position, geometry } = selectedObject;
+  selectedObjects.forEach((selectedObject) => {
+    const { position, geometry } = selectedObject;
 
-  if (!geometry) {
-    console.warn('El objeto seleccionado no tiene geometría válida para agregar físicas.');
-    return;
-  }
+    if (!geometry) {
+      console.warn('El objeto seleccionado no tiene geometría válida para agregar físicas.');
+      return;
+    }
 
-  let bodyShape;
-  try {
-    switch (shape) {
-      case 'box': {
-        const boxSize = new THREE.Box3().setFromObject(selectedObject).getSize(new THREE.Vector3());
-        bodyShape = new CANNON.Box(new CANNON.Vec3(boxSize.x / 2, boxSize.y / 2, boxSize.z / 2));
-        break;
-      }
-      case 'sphere': {
-        const boundingSphere = geometry.boundingSphere || new THREE.Sphere();
-        bodyShape = new CANNON.Sphere(boundingSphere.radius);
-        break;
-      }
-      case 'mesh': {
-        const vertices = geometry.attributes.position.array;
-        const shapeVertices = [];
-        for (let i = 0; i < vertices.length; i += 3) {
-          shapeVertices.push(new CANNON.Vec3(vertices[i], vertices[i + 1], vertices[i + 2]));
+    let bodyShape;
+    try {
+      switch (shape) {
+        case 'box': {
+          const boxSize = new THREE.Box3().setFromObject(selectedObject).getSize(new THREE.Vector3());
+          bodyShape = new CANNON.Box(new CANNON.Vec3(boxSize.x / 2, boxSize.y / 2, boxSize.z / 2));
+          break;
         }
-        bodyShape = new CANNON.ConvexPolyhedron(shapeVertices);
-        break;
+        case 'sphere': {
+          const boundingSphere = geometry.boundingSphere || new THREE.Sphere();
+          bodyShape = new CANNON.Sphere(boundingSphere.radius);
+          break;
+        }
+        case 'mesh': {
+          const vertices = geometry.attributes.position.array;
+          const shapeVertices = [];
+          for (let i = 0; i < vertices.length; i += 3) {
+            shapeVertices.push(new CANNON.Vec3(vertices[i], vertices[i + 1], vertices[i + 2]));
+          }
+          bodyShape = new CANNON.ConvexPolyhedron(shapeVertices);
+          break;
+        }
+        default:
+          throw new Error('Forma no reconocida.');
       }
-      default:
-        throw new Error('Forma no reconocida.');
+    } catch (error) {
+      console.warn(error.message, 'Usando forma box por defecto.');
+      bodyShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
     }
-  } catch (error) {
-    console.warn(error.message, 'Usando forma box por defecto.');
-    bodyShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
-  }
 
-  const body = new CANNON.Body({
-    mass,
-    position: new CANNON.Vec3(position.x, position.y, position.z),
+    // Crear el cuerpo físico con la transformación
+    const body = new CANNON.Body({
+      mass,
+      position: new CANNON.Vec3(position.x, position.y, position.z),
+    });
+
+    body.addShape(bodyShape);
+    body.material = new CANNON.Material();
+    body.material.friction = friction;
+    body.material.restitution = restitution;
+
+    // Añadir el cuerpo físico al mundo
+    world.addBody(body);
+
+    // Guardar el cuerpo físico en el objeto Three.js para futuras referencias
+    selectedObject.userData.physicsBody = body;
+
+    console.log('Físicas añadidas al objeto seleccionado:', selectedObject);
   });
-
-  body.addShape(bodyShape);
-  body.material = new CANNON.Material();
-  body.material.friction = friction;
-  body.material.restitution = restitution;
-
-  body.position.copy(selectedObject.position);
-  world.addBody(body);
-
-  selectedObject.userData.physicsBody = body;
-
-  const collisionMesh = new THREE.Mesh(
-    geometry,
-    new THREE.MeshStandardMaterial({ visible: false })
-  );
-  selectedObject.add(collisionMesh);
-  collisionMesh.position.set(0, 0, 0);
-  collisionMesh.updateMatrixWorld = function() {
-    body.position.copy(selectedObject.position);
-    collisionMesh.position.copy(selectedObject.position);
-  };
-
-  console.log('Físicas añadidas al objeto seleccionado:', selectedObject);
 }
-function addPhysics(options = {}) {
-  const { mass = 1, shape = 'mesh', friction = 0.3, restitution = 0.3 } = options;
 
+function addPhysics(options = {}) {
+  const { mass = 20, shape = 'box', friction = 0.4, restitution = 0 } = options;
+
+  let selectedObjects = [];
+
+  // Buscar todos los objetos seleccionados
+  scene.traverse((object) => {
+    if (object.userData.SelectedObject) {
+      selectedObjects.push(object);
+    }
+  });
+
+  if (selectedObjects.length === 0) {
+    console.warn('No hay objetos seleccionados.');
+    return;
+  }
+
+  selectedObjects.forEach((selectedObject) => {
+    const { position, geometry } = selectedObject;
+
+    if (!geometry) {
+      console.warn('El objeto seleccionado no tiene geometría válida para agregar físicas.');
+      return;
+    }
+
+    let bodyShape;
+    try {
+      switch (shape) {
+        case 'box': {
+          const boxSize = new THREE.Box3().setFromObject(selectedObject).getSize(new THREE.Vector3());
+          bodyShape = new CANNON.Box(new CANNON.Vec3(boxSize.x / 2, boxSize.y / 2, boxSize.z / 2));
+          break;
+        }
+        case 'sphere': {
+          const boundingSphere = geometry.boundingSphere || new THREE.Sphere();
+          bodyShape = new CANNON.Sphere(boundingSphere.radius);
+          break;
+        }
+        case 'mesh': {
+          const vertices = geometry.attributes.position.array;
+          const shapeVertices = [];
+          for (let i = 0; i < vertices.length; i += 3) {
+            shapeVertices.push(new CANNON.Vec3(vertices[i], vertices[i + 1], vertices[i + 2]));
+          }
+          bodyShape = new CANNON.ConvexPolyhedron(shapeVertices);
+          break;
+        }
+        default:
+          throw new Error('Forma no reconocida.');
+      }
+    } catch (error) {
+      console.warn(error.message, 'Usando forma box por defecto.');
+      bodyShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+    }
+
+    // Crear el cuerpo físico con la transformación
+    const body = new CANNON.Body({
+      mass,
+      position: new CANNON.Vec3(position.x, position.y, position.z),
+    });
+
+    body.addShape(bodyShape);
+    body.material = new CANNON.Material();
+    body.material.friction = friction;
+    body.material.restitution = restitution;
+
+    // Añadir el cuerpo físico al mundo
+    world.addBody(body);
+
+    // Guardar el cuerpo físico en el objeto Three.js para futuras referencias
+    selectedObject.userData.physicsBody = body;
+
+    console.log('Físicas añadidas al objeto seleccionado:', selectedObject);
+  });
+}
+
+function deletePhysics() {
   let selectedObject = null;
 
   scene.traverse((object) => {
@@ -119,84 +188,25 @@ function addPhysics(options = {}) {
     return;
   }
 
-  const geometry = selectedObject.geometry;
+  const physicsBody = selectedObject.userData.physicsBody;
 
-  if (!geometry) {
-    console.warn('El objeto seleccionado no tiene geometría válida para agregar físicas.');
+  if (!physicsBody) {
+    console.warn('El objeto seleccionado no tiene físicas asociadas.');
     return;
   }
 
-  geometry.computeBoundingSphere();
-  geometry.computeBoundingBox();
+  // Eliminar el cuerpo físico del mundo
+  world.removeBody(physicsBody);
 
-  let bodyShape;
-  try {
-    if (shape === 'mesh') {
-      const vertices = Array.from(geometry.attributes.position.array);
-      const shapeVertices = [];
-      const faces = [];
+  // Eliminar la referencia a las físicas del objeto
+  delete selectedObject.userData.physicsBody;
 
-      for (let i = 0; i < vertices.length; i += 3) {
-        shapeVertices.push(new CANNON.Vec3(vertices[i], vertices[i + 1], vertices[i + 2]));
-      }
-
-      if (geometry.index) {
-        const indices = Array.from(geometry.index.array);
-        for (let i = 0; i < indices.length; i += 3) {
-          faces.push([indices[i], indices[i + 1], indices[i + 2]]);
-        }
-      } else {
-        for (let i = 0; i < shapeVertices.length; i += 3) {
-          faces.push([i, i + 1, i + 2]);
-        }
-      }
-
-      bodyShape = new CANNON.ConvexPolyhedron({
-        vertices: shapeVertices,
-        faces: faces,
-      });
-    } else if (shape === 'box') {
-      const boxSize = geometry.boundingBox.getSize(new THREE.Vector3());
-      bodyShape = new CANNON.Box(new CANNON.Vec3(boxSize.x / 2, boxSize.y / 2, boxSize.z / 2));
-    } else if (shape === 'sphere') {
-      const boundingSphere = geometry.boundingSphere || new THREE.Sphere();
-      bodyShape = new CANNON.Sphere(boundingSphere.radius);
-    } else {
-      throw new Error('Forma no reconocida.');
-    }
-  } catch (error) {
-    console.warn(error.message, 'Usando forma box por defecto.');
-    const boxSize = geometry.boundingBox.getSize(new THREE.Vector3());
-    bodyShape = new CANNON.Box(new CANNON.Vec3(boxSize.x / 2, boxSize.y / 2, boxSize.z / 2));
-  }
-
-  const body = new CANNON.Body({
-    mass,
-    position: new CANNON.Vec3(
-      selectedObject.position.x,
-      selectedObject.position.y,
-      selectedObject.position.z
-    ),
-    shape: bodyShape,
-    material: new CANNON.Material({ friction, restitution }),
-  });
-
-  world.addBody(body);
-  selectedObject.userData.physicsBody = body;
-
-  const collisionMesh = new THREE.Mesh(
-    geometry.clone(),
-    new THREE.MeshStandardMaterial({ visible: false })
+  // Eliminar colisión o elementos asociados a físicas
+  selectedObject.children = selectedObject.children.filter(
+    (child) => !(child.isMesh && child.material.visible === false)
   );
 
-  selectedObject.add(collisionMesh);
-
-  collisionMesh.updateMatrixWorld = function() {
-    body.position.copy(selectedObject.position);
-    collisionMesh.position.copy(selectedObject.position);
-  };
-
-  console.log('Físicas añadidas al objeto seleccionado:', selectedObject);
+  console.log('Físicas eliminadas del objeto seleccionado:', selectedObject);
 }
 
 function addCloth() {
@@ -305,9 +315,7 @@ initWorld();
 
 function updatePhysics() {
   if (world) {
-    world.step(1 / 60); // Paso de simulación para el mundo de físicas
-
-    // Sincronizar la posición y rotación de los objetos de Three.js con CANNON.js
+    world.step(1 / 60);
     scene.traverse((object) => {
       if (object.userData.physicsBody) {
         const body = object.userData.physicsBody;
