@@ -91,6 +91,10 @@ hr {
   background: var(--border-secondary);
 }
 
+#keyframeButton {
+  background-color: var(--accent-primary);   
+}
+
 sep {
   width: 1.5px;
   height: 20px;
