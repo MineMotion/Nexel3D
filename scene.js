@@ -68,6 +68,7 @@ if (positions[i + 2] === 0) {
   renderer = new THREE.WebGLRenderer({ antialias: true});
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -93,6 +94,30 @@ if (positions[i + 2] === 0) {
 
   // Eventos de ventana
   window.addEventListener('resize', onWindowResize, false);
+  
+  
+  
+  document.addEventListener('DOMContentLoaded', () => {
+  const sensibilityInput = document.getElementById('sensibility');
+
+  // Recuperar la sensibilidad guardada
+  const savedSensitivity = localStorage.getItem('rotateSensitivity');
+  if (savedSensitivity) {
+    controls.rotateSpeed = parseFloat(savedSensitivity);
+    sensibilityInput.value = savedSensitivity;
+  }
+
+  // Actualizar la sensibilidad al cambiar el valor
+  sensibilityInput.addEventListener('input', function() {
+    const sensitivity = parseFloat(this.value);
+    controls.rotateSpeed = sensitivity;
+    localStorage.setItem('rotateSensitivity', sensitivity);
+  });
+});
+  
+  
+  
+  
 }
 
 function onWindowResize() {
@@ -101,3 +126,4 @@ function onWindowResize() {
   toggleActionBar();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
+

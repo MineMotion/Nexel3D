@@ -372,13 +372,38 @@ function setController() {
   });
   updateOutliner();
 }
-function setupIK() {
-  const notification = document.getElementById('notification');
-  notification.textContent = "Esta función aun no esta disponible";
-  notification.style.display = 'inline';
-  setTimeout(() => {
-    notification.style.display = 'none';
-  }, 3000);
+function createIKChain() {
+  const bones = [];
+  scene.traverse((object) => {
+    if (object.type === "Bone") {
+      bones.push(object);
+    }
+  });
+
+  const ancle = bones.find((bone) => bone.name.includes("(A)"));
+  const controller = bones.find((bone) => bone.name.includes("(C)"));
+  const intermediates = bones.filter((bone) => bone.name.includes("(I)"));
+
+  if (!ancle || !controller) {
+    console.warn("Se requiere un hueso con (A) como Ancle y un hueso con (C) como Controller para crear una cadena IK.");
+    return;
+  }
+
+  const chain = [ancle, ...intermediates, controller];
+
+  const target = controller.userData.target;
+
+  const ikSolver = new THREE.CCDIKSolver({
+    bones: chain,
+    target: target,
+  });
+
+  // Actualizar el IK en cada frame
+  const updateIK = () => {
+    ikSolver.solve();
+  };
+
+  animateCallbacks.push(updateIK);
 }
 
 // Controls
@@ -464,122 +489,164 @@ function updateDynamics() {
 }
 updateDynamics();
 
-/* Tests */
-function savePoseToIndexedDB(poseName, selectedBone) {
-  // Crear la solicitud para abrir la base de datos IndexedDB
-  const openRequest = indexedDB.open("poseLibrary", 1);
+// Mirror Mode
+let mirrorEnabled = false;
 
-  // Configuración inicial de la base de datos
-  openRequest.onupgradeneeded = function(event) {
-    const db = event.target.result;
-    if (!db.objectStoreNames.contains("poses")) {
-      db.createObjectStore("poses", { keyPath: "name" });
+function mirrorMode() {
+  mirrorEnabled = !mirrorEnabled;
+
+  if (mirrorEnabled) {
+    updateConstraints();
+  }
+}
+
+function updateConstraints() {
+  scene.traverse((object) => {
+    if (object.name.includes('left') && mirrorEnabled) {
+      const rightObject = scene.getObjectByName(object.name.replace('left', 'right'));
+      if (rightObject) {
+        rightObject.position.set(-object.position.x, object.position.y, object.position.z);
+        rightObject.rotation.set(-object.rotation.x, object.rotation.y, -object.rotation.z);
+      }
     }
+  });
+}
+
+// Pose Library 
+let storedPoses = loadPosesFromLocalStorage();
+renderStoredPoses();
+function savePose() {
+  const selectedObject = getSelectedObject(scene);
+
+  if (!selectedObject) {
+    alert('No bone selected');
+    return;
+  }
+
+  const poseName = prompt('Enter pose name:');
+  if (!poseName) return;
+
+  const pose = {
+    name: poseName,
+    bones: []
   };
 
-  openRequest.onsuccess = function(event) {
-    const db = event.target.result;
-    const transaction = db.transaction("poses", "readwrite");
-    const store = transaction.objectStore("poses");
+  selectedObject.traverse((object) => {
+    if (object instanceof THREE.Bone) {
+      pose.bones.push({
+        name: object.name,
+        position: object.position.toArray(),
+        rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+        scale: object.scale.toArray()
+      });
+    }
+  });
 
-    // Obtenemos la posición, rotación y escala de los huesos hijos
-    const poseData = {};
-    selectedBone.traverse((object) => {
+  storedPoses.push(pose);
+  savePosesToLocalStorage();
+
+  createPoseButton(poseName);
+}
+function applyPose(poseName) {
+  const selectedObject = getSelectedObject(scene);
+
+  if (!selectedObject) {
+    alert('No bone selected');
+    return;
+  }
+
+  const pose = storedPoses.find(p => p.name === poseName);
+
+  if (pose) {
+    selectedObject.traverse((object) => {
       if (object instanceof THREE.Bone) {
-        poseData[object.name] = {
-          position: object.position.toArray(),
-          rotation: object.rotation.toArray(),
-          scale: object.scale.toArray()
-        };
+        const bonePose = pose.bones.find(p => p.name === object.name);
+        if (bonePose) {
+          object.position.fromArray(bonePose.position);
+          object.rotation.set(...bonePose.rotation);
+          object.scale.fromArray(bonePose.scale);
+        }
       }
     });
-
-    // Verificar si ya existe una pose con el mismo nombre
-    const getPose = store.get(poseName);
-
-    getPose.onsuccess = function() {
-      if (getPose.result) {
-        alert(`Ya existe una pose con el nombre '${poseName}'. Por favor, usa un nombre diferente.`);
-        return;
-      }
-
-      const pose = {
-        name: poseName,
-        data: poseData
-      };
-
-      // Guardar la pose en la base de datos
-      store.add(pose).onsuccess = function() {
-        addPoseToDiv(poseName);
-        console.log(`Pose '${poseName}' guardada exitosamente.`);
-      };
-    };
-
-    getPose.onerror = function() {
-      console.error("Error al buscar en la base de datos.");
-    };
-  };
-
-  openRequest.onerror = function(event) {
-    console.error("Error al abrir la base de datos:", event.target.error.message);
-  };
+  }
 }
-function addPoseToDiv(poseName) {
-  const poseDiv = document.createElement('div');
-  poseDiv.textContent = poseName;
-  poseDiv.classList.add('pose-item');
-  poseDiv.addEventListener('click', () => {
-    loadPose(poseName);
+function createPoseButton(poseName) {
+  const poseButton = document.createElement('button');
+  poseButton.classList.add('poseItem');
+
+  const poseIcon = document.createElement('img');
+  poseIcon.src = 'icons/skeleton.svg';
+  poseButton.appendChild(poseIcon);
+  poseButton.appendChild(document.createTextNode(poseName));
+
+  poseButton.addEventListener('click', () => {
+    applyPose(poseName);
   });
 
-  const posePresetsContainer = document.getElementById('posePresets');
-  posePresetsContainer.appendChild(poseDiv);
+  const savedPosesContainer = document.getElementById('savedPoses');
+  savedPosesContainer.appendChild(poseButton);
 }
-function loadPose(poseName) {
-  const openRequest = indexedDB.open("poseLibrary", 1);
+function savePosesToLocalStorage() {
+  localStorage.setItem('savedPoses', JSON.stringify(storedPoses));
+}
+function loadPosesFromLocalStorage() {
+  const poses = localStorage.getItem('savedPoses');
+  return poses ? JSON.parse(poses) : [];
+}
+function renderStoredPoses() {
+  const savedPosesContainer = document.getElementById('savedPoses');
+  storedPoses.forEach(pose => {
+    createPoseButton(pose.name);
+  });
+}
 
-  openRequest.onsuccess = function(event) {
-    const db = event.target.result;
-    const transaction = db.transaction("poses", "readonly");
-    const store = transaction.objectStore("poses");
+// Rename Bone Chain
+function fixBoneChain() {
+  const selectedBone = getSelectedObject(scene);
 
-    // Buscar la pose por su nombre
-    const getPose = store.get(poseName);
+  if (!selectedBone || !(selectedBone instanceof THREE.Bone)) {
+    alert('No bone selected or selected object is not a bone');
+    return;
+  }
 
-    getPose.onsuccess = function() {
-      const pose = getPose.result;
-      if (pose) {
-        applyPoseToBone(pose.data);
-      } else {
-        alert(`Pose '${poseName}' no encontrada.`);
+  let counter = 1;
+
+  selectedBone.traverse((bone) => {
+    if (bone instanceof THREE.Bone) {
+      if (bone !== selectedBone) {
+        bone.name = `${selectedBone.name} ${counter}`;
+        counter++;
       }
-    };
+    }
+  });
 
-    getPose.onerror = function() {
-      console.error("Error al cargar la pose desde la base de datos.");
-    };
-  };
-
-  openRequest.onerror = function(event) {
-    console.error("Error al abrir la base de datos:", event.target.error.message);
-  };
-}
-function applyPoseToBone(poseData) {
-  scene.traverse((object) => {
-    if (object instanceof THREE.Bone && poseData[object.name]) {
-      const boneData = poseData[object.name];
-      object.position.fromArray(boneData.position);
-      object.rotation.fromArray(boneData.rotation);
-      object.scale.fromArray(boneData.scale);
+  console.log(`Bone chain fixed starting from: ${selectedBone.name}`);
+  selectedBone.traverse((bone) => {
+    if (bone instanceof THREE.Bone) {
+      console.log(`Bone name: ${bone.name}`);
     }
   });
 }
-function savePose(selectedBone) {
-  const poseName = prompt("Ingresa un nombre para la pose:");
 
-  if (poseName) {
-    savePoseToIndexedDB(poseName, selectedBone);
+// Delete Saved Poses
+function deleteSavedPoses() {
+  const confirmation = confirm('Are you sure you want to delete all saved poses? This action cannot be undone.');
+
+  if (confirmation) {
+    // Eliminar los datos almacenados en localStorage
+    localStorage.removeItem('savedPoses');
+
+    // Reiniciar el array en memoria
+    storedPoses = [];
+
+    // Vaciar el contenedor de los botones
+    const savedPosesContainer = document.getElementById('savedPoses');
+    while (savedPosesContainer.firstChild) {
+      savedPosesContainer.removeChild(savedPosesContainer.firstChild);
+    }
+
+    console.log('All saved poses have been deleted.');
   } else {
-    alert("El nombre de la pose no puede estar vacío.");
+    console.log('Deletion canceled.');
   }
 }

@@ -1,31 +1,55 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proyectos Nexel3D</title>
-  <link rel="stylesheet" href="index.css">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Projects</title>
+  
+  <link rel="stylesheet" href="projects.css"></link>
 </head>
 <body>
-  <header>
-    <div class="logo">
-      <h1>Nexel3D</h1>
-    </div>
-    <nav>
-      <button onclick="" id="newProjectBtn">Nuevo Proyecto</button>
-    </nav>
-  </header>
+  
+  <div id="header">
+    <img id="nexelLogo" src="assets/Textures/Nexel Beta Logo.png">
+    <h2>Nexel3D v1.4.0</h2>
+    
+    <button id="preferences"><img src="icons/preferences.svg"></button>
+  </div>
+  
+  <div id="projectList">
 
-  <main>
-    <div id="projectList" class="gallery-grid">
-      <!-- Los proyectos se cargarán aquí -->
-    </div>
-  </main>
-
-  <footer>
-    <p>&copy; 2024 Nexel3D. Todos los derechos reservados.</p>
-  </footer>
-
-  <script src="index.js"></script>
+  <div class="projectCard">
+    <img class="projectScreenshot" src="assets/Textures/Nexel Beta Logo.png">
+    New Project
+  </div>
+  <div class="projectCard">
+    <img class="projectScreenshot" src="assets/Textures/Nexel Beta Logo.png">
+    New Project
+  </div>
+  <div class="projectCard">
+    <img class="projectScreenshot" src="assets/Textures/Nexel Beta Logo.png">
+    New Project
+  </div>
+  <div class="projectCard">
+    <img class="projectScreenshot" src="assets/Textures/Nexel Beta Logo.png">
+    New Project
+  </div>
+  <div class="projectCard">
+    <img class="projectScreenshot" src="assets/Textures/Nexel Beta Logo.png">
+    New Project
+  </div>
+  <div class="projectCard">
+    <img class="projectScreenshot" src="assets/Textures/Nexel Beta Logo.png">
+    New Project
+  </div>
+  <!-- Add more project cards here -->
+</div>
+  
+  <button id="newProject"><img src="icons/add.svg">New Project</button>
+  
 </body>
+
+<script src="projects.js"></script>
+
 </html>

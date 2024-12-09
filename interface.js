@@ -612,41 +612,51 @@ window.addEventListener('touchstart', function(event) {
 
 
 
+let cameraRenderer, cameraViewport, cameraRenderTarget, viewportCamera;
+
 function setupCameraViewport() {
-  const cameraViewport = document.getElementById('cameraViewport');
+  cameraViewport = document.getElementById('cameraViewport');
   if (cameraViewport.style.display === 'block') {
     cameraViewport.style.display = 'none';
     return;
   }
   cameraViewport.style.display = 'block';
 
-  const cameraRenderTarget = new THREE.WebGLRenderTarget(200, 100);
+  cameraRenderTarget = new THREE.WebGLRenderTarget(200, 100);
 
-  const cameraRenderer = new THREE.WebGLRenderer({
-    alpha: true,
-    antialias: true,
-    powerPreference: "high-performance"
-  });
+  if (!cameraRenderer) {
+    cameraRenderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      powerPreference: "high-performance"
+    });
+    cameraRenderer.setSize(200, 100);
+    cameraRenderer.setPixelRatio(window.devicePixelRatio);
+    cameraViewport.appendChild(cameraRenderer.domElement);
+  }
 
-  cameraRenderer.setSize(200, 100);
-  cameraRenderer.setPixelRatio(window.devicePixelRatio);
-  cameraViewport.appendChild(cameraRenderer.domElement);
+  updateViewportCamera();
 
-  let camera = null;
-  scene.traverse((object) => {
-    if (object.userData.SelectedObject && object instanceof THREE.Camera) {
-      camera = object;
+  function updateViewportCamera() {
+    let selectedCamera = null;
+    scene.traverse((object) => {
+      if (object.userData.SelectedObject && object instanceof THREE.Camera) {
+        selectedCamera = object;
+      }
+    });
+
+    if (selectedCamera) {
+      viewportCamera = selectedCamera;
+      const aspectRatio = 200 / 100;
+      viewportCamera.aspect = aspectRatio;
+      viewportCamera.updateProjectionMatrix();
     }
-  });
+  }
 
-  if (camera) {
-    const aspectRatio = 200 / 100;
-    camera.aspect = aspectRatio;
-    camera.updateProjectionMatrix();
-
-    function render() {
-      requestAnimationFrame(render);
-      camera.updateMatrixWorld();
+  function render() {
+    requestAnimationFrame(render);
+    if (viewportCamera) {
+      viewportCamera.updateMatrixWorld();
 
       cameraRenderer.setScissorTest(true);
       cameraRenderer.setScissor(0, 0, 200, 100);
@@ -666,7 +676,7 @@ function setupCameraViewport() {
         }
       });
 
-      cameraRenderer.render(scene, camera);
+      cameraRenderer.render(scene, viewportCamera);
 
       hiddenObjects.forEach((object) => {
         object.visible = true;
@@ -674,9 +684,9 @@ function setupCameraViewport() {
 
       cameraRenderer.setScissorTest(false);
     }
-
-    render();
   }
+
+  render();
 }
 function closeViewport() {
   const cameraViewport = document.getElementById('cameraViewport');
@@ -752,19 +762,6 @@ function pin() {
     });
   }
 }
-function jumpIn() {
-  const targetCamera = scene.getObjectByName('Camera');
-
-  if (targetCamera && targetCamera.isCamera) {
-    controls = new THREE.OrbitControls(targetCamera, renderer.domElement); // Actualiza los controles
-    renderer.setAnimationLoop(() => {
-      controls.update();
-      renderer.render(scene, targetCamera);
-    });
-  } else {
-    console.error('No se encontró una cámara llamada "Camera" en la escena.');
-  }
-}
 function lookOnObject() {
   const target = scene.children.find((child) => child.userData?.id === 'cameraTarget');
   
@@ -812,6 +809,133 @@ function changeColor() {
     renderer.render(scene, selectedCamera);
   } else {
     console.error('No se ha seleccionado una cámara válida.');
+  }
+}
+function orthographicProjection() {
+  const selectedCamera = scene.children.find(obj => obj.userData.SelectedObject && obj.isCamera);
+
+  if (selectedCamera && selectedCamera.isPerspectiveCamera) {
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 8;
+
+    const cameraObjLoader = new THREE.OBJLoader();
+
+    cameraObjLoader.load('assets/Models/camera.obj', function(obj) {
+      let cameraLines;
+
+      obj.traverse((child) => {
+        if (child.isMesh) {
+          const edges = new THREE.EdgesGeometry(child.geometry);
+          cameraLines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+            color: 0x000000,
+            linewidth: 2,
+          }));
+          cameraLines.userData.exclude = true;
+          cameraLines.userData.id = 'camera';
+          cameraLines.rotation.y = THREE.MathUtils.degToRad(90);
+        }
+      });
+
+      if (!cameraLines) {
+        console.error('No se encontró geometría válida en el archivo OBJ para las líneas de la cámara.');
+        return;
+      }
+
+      const orthographicCamera = new THREE.OrthographicCamera(
+        -frustumSize * aspect / 2,
+        frustumSize * aspect / 2,
+        frustumSize / 2,
+        -frustumSize / 2,
+        selectedCamera.near,
+        selectedCamera.far
+      );
+
+      orthographicCamera.name = 'Camera';
+      orthographicCamera.userData.id = 'camera';
+      orthographicCamera.position.copy(selectedCamera.position);
+      orthographicCamera.rotation.copy(selectedCamera.rotation);
+      orthographicCamera.lookAt(0, 0, 0);
+
+      cameraLines.position.set(0, 0, 0);
+      orthographicCamera.add(cameraLines);
+      orthographicCamera.scale.set(3, 1, 0.5);
+      scene.add(orthographicCamera);
+
+      transformControls.detach();
+      transformControls.attach(orthographicCamera);
+
+      selectedCamera.userData.SelectedObject = false;
+      scene.remove(selectedCamera);
+
+      orthographicCamera.userData.SelectedObject = true;
+
+      setupCameraViewport();
+      updateOutliner();
+      setupCameraViewport();
+    });
+  } else {
+    console.error('No se ha seleccionado una cámara válida o la cámara ya es ortográfica.');
+  }
+}
+function perspectiveProjection() {
+  const selectedCamera = scene.children.find(obj => obj.userData.SelectedObject && obj.isCamera);
+
+  if (selectedCamera && selectedCamera.isOrthographicCamera) {
+    const aspect = window.innerWidth / window.innerHeight;
+    const fov = 50;
+    const near = selectedCamera.near;
+    const far = selectedCamera.far;
+
+    const cameraObjLoader = new THREE.OBJLoader();
+
+    cameraObjLoader.load('assets/Models/camera.obj', function(obj) {
+      let cameraLines;
+
+      obj.traverse((child) => {
+        if (child.isMesh) {
+          const edges = new THREE.EdgesGeometry(child.geometry);
+          cameraLines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+            color: 0x000000,
+            linewidth: 2,
+          }));
+          cameraLines.userData.exclude = true;
+          cameraLines.userData.id = 'camera';
+          cameraLines.rotation.y = THREE.MathUtils.degToRad(90);
+        }
+      });
+
+      if (!cameraLines) {
+        console.error('No se encontró geometría válida en el archivo OBJ para las líneas de la cámara.');
+        return;
+      }
+
+      const perspectiveCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+
+      perspectiveCamera.name = 'Camera';
+      perspectiveCamera.userData.id = 'camera';
+      perspectiveCamera.position.copy(selectedCamera.position);
+      perspectiveCamera.rotation.copy(selectedCamera.rotation);
+      perspectiveCamera.lookAt(0, 0, 0);
+
+      cameraLines.position.set(0, 0, 0);
+      perspectiveCamera.add(cameraLines);
+
+      scene.add(perspectiveCamera);
+
+      transformControls.detach();
+      transformControls.attach(perspectiveCamera);
+
+      selectedCamera.userData.SelectedObject = false;
+      scene.remove(selectedCamera);
+
+      perspectiveCamera.userData.SelectedObject = true;
+
+      setupCameraViewport();
+      updateOutliner();
+      setupCameraViewport();
+    });
+  } else {
+    console.error('No se ha seleccionado una cámara válida o la cámara ya es perspectiva.');
   }
 }
 

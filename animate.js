@@ -5,6 +5,7 @@ function animate() {
   updateOutlines();
   listMaterials();
   updateObjectToolsButton();
+  updateConstraints();
 }
 
 init();

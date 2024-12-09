@@ -20,6 +20,8 @@
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
   
+  <script src="https://fastly.jsdelivr.net/npm/ccapture.js@1.1.0/build/CCapture.all.min.js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/three@0.130.1/examples/js/loaders/RGBELoader.js"></script>
   
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -38,15 +40,16 @@
   
   <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r110/examples/js/animation/CCDIKSolver.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/animation/CCDIKSolver.js"></script>
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/postprocessing/OutlinePass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/SSAOPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three/examples/js/shaders/SSAOShader.js"></script>
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/postprocessing/EffectComposer.js"></script>
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/jsm/postprocessing/RenderPass.js"></script>
-  
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/exporters/OBJExporter.js"></script>
  
@@ -93,28 +96,28 @@
   <!-- Add Menu Principal -->
   <div id="addMenu" class="primary-menu">
     
-    <h3>Add Object</h3>
+    <h3>Add</h3>
 
-    <div class="menu-item" onclick="showMenu('meshMenu')">Mesh</div>
-
-    <div class="menu-item" onclick="showMenu('lightMenu')">Light</div>
-
-    <div class="menu-item" onclick="showMenu('lineMenu')">Line</div>
+    <div class="menu-item" onclick="showMenu('meshMenu')"><img src="icons/outliner_ob_mesh.svg">Mesh</div>
+    
+    <div class="menu-item" onclick="showMenu('lineMenu')"><img src="icons/outliner_ob_curve.svg">Curve</div>
+    
+    <div class="menu-item" onclick="showMenu('lightMenu')"><img src="icons/light.svg">Light</div>
     
     <hr>
     
-    <div class="menu-item" onclick="addBone(), hide()">bone</div>
-    <div class="menu-item" onclick="addCamera(), hide()">Camera</div>
+    <div class="menu-item" onclick="addBone(), hide()"><img src="icons/bone.svg">Bone</div>
+    <div class="menu-item" onclick="addCamera(), hide()"><img src="icons/camera.svg">Camera</div>
     
     <hr>
     
-    <div id="importBtn" onclick="fastImport(), hide()" class="menu-item">Import</div>
+    <div id="importBtn" onclick="fastImport(), hide()" class="menu-item"><img src="icons/import.svg">Import</div>
     
-    <div onclick="addVideo(), hide()" class="menu-item">Import Video</div>
+    <div onclick="addVideo(), hide()" class="menu-item"><img src="icons/import.svg">Import Video</div>
     
     <hr>
     
-    <div class="menu-item" onclick="showMenu('nexelLabMenu')">Nexel Lab 🧪</div>
+    <div class="menu-item" onclick="showMenu('nexelLabMenu')"><img src="icons/experimental.svg">Nexel Lab</div>
 
   </div>
   
@@ -124,7 +127,7 @@
     
     <div onclick="window.location.href='index.html'" class="menu-item"><img src="icons/home.svg">Home</div>
     
-    <div onclick="saveProject()" id="saveProject" class="menu-item"><img src="icons/preset.svg">Save</div>
+    <div onclick="saveProject('New Project')" id="saveProject" class="menu-item"><img src="icons/preset.svg">Save</div>
     
     <div onclick="showMenu('renderMenu'), renderImage()" class="menu-item"><img src="icons/render_still.svg">Render</div>
     
@@ -177,57 +180,56 @@
       <hr>
       <button onclick="lookOnObject()">Look at Target</button>
       <button onclick="addTarget()">add Target</button>
+      <hr>
+      
+      <button onclick="orthographicProjection()">Ortographic 2D</button>
+      <button onclick="perspectiveProjection()">Perspective 3D</button>
     </div>
+
     
   </div>
 
   <!-- Mesh Menu -->
   <div id="meshMenu" class="menu">
-
-    <h3>Mesh</h3>
-
-    <div class="menu-item" onclick="addCube(), hide()">Cube</div>
-
-    <div class="menu-item" onclick="addSphere(), hide()">Sphere</div>
-
-    <div class="menu-item" onclick="addPlane(), hide()">Plane</div>
     
-    <div class="menu-item" onclick="addMonkey(), hide()">Monkey</div>
+    <div class="menu-item" onclick="addPlane(), hide()"><img src="icons/mesh_plane.svg">Plane</div>
+    
+    <div class="menu-item" onclick="addCube(), hide()"><img src="icons/mesh_cube.svg">Cube</div>
+    
+    <div class="menu-item" onclick="addCircle(), hide()"><img src="icons/mesh_circle.svg">Circle</div>
 
+    <div class="menu-item" onclick="addSphere(), hide()"><img src="icons/mesh_uvsphere.svg">Sphere</div>
+    
+    <div class="menu-item" onclick="addCylinder(), hide()"><img src="icons/mesh_cylinder.svg">Cylinder</div>
+    
+    <div class="menu-item" onclick="addPyramid(), hide()"><img src="icons/mesh_cone.svg">Cone</div>
+    
+    <div class="menu-item" onclick="addToroid(), hide()"><img src="icons/mesh_torus.svg">Torus</div>
+    
     <hr>
     
-    <div class="menu-item" onclick="addMirror(), hide()">Mirror</div>
+    <div class="menu-item" onclick="addMonkey(), hide()"><img src="icons/mesh_monkey.svg">Monkey</div>
     
-    <hr>
+    <div class="menu-item" onclick="addEmpty(), hide()"><img src="icons/empty.svg">Empty</div>
     
-    <div class="menu-item" onclick="addCylinder(), hide()">Cylinder</div>
-    
-    <div class="menu-item" onclick="addToroid(), hide()">Toroid</div>
-    
-    <div class="menu-item" onclick="addCircle(), hide()">Circle</div>
-    
-    <div class="menu-item" onclick="addPyramid(), hide()">Pyramid</div>
-
   </div>
 
   <!-- Light Menu -->
   <div id="lightMenu" class="menu">
 
-    <h3>Light</h3>
+    <div class="menu-item" onclick="addPointLight(), hide()"><img src="icons/light_point.svg">Point</div>
 
-    <div class="menu-item" onclick="addPointLight(), hide()">Point</div>
+    <div class="menu-item" onclick="addDirectionalLight(), hide()"><img src="icons/light_sun.svg">Directional</div>
 
-    <div class="menu-item" onclick="addDirectionalLight(), hide()">Directional</div>
-
-    <div class="menu-item" onclick="addSpotLight(), hide()">Spot</div>
+    <div class="menu-item" onclick="addSpotLight(), hide()"><img src="icons/light_spot.svg">Spot</div>
 
     <hr>
     
-    <div class="menu-item" onclick="addAmbientLight(), hide()">Ambiental</div>
+    <div class="menu-item" onclick="addAmbientLight(), hide()"><img src="/icons/empty.svg">Ambiental</div>
     
-    <div class="menu-item" onclick="addHemisphereLight(), hide()">Hemisphere</div>
+    <div class="menu-item" onclick="addHemisphereLight(), hide()"><img src="icons/light_hemi.svg">Hemisphere</div>
     
-    <div class="menu-item" onclick="addRectAreaLight(), hide()">Area</div>
+    <div class="menu-item" onclick="addRectAreaLight(), hide()"><img src="icons/light_area.svg">Area</div>
 
   </div>
 
@@ -239,8 +241,8 @@
     <div class="menu-item" onclick="addLine(), hide()">Line</div>
 
     <div class="menu-item" onclick="addCurve(), hide()">Curve</div>
-
-    <div class="menu-item" onclick="addThickLine(), hide()">Thick</div>
+    
+    <div class="menu-item" onclick="addDashedLine(), hide()">Dashed</div>
 
     <hr>
 
@@ -255,11 +257,142 @@
   
   <!-- Nexel Lab -->
   <div id="nexelLabMenu" class="menu">
-    <div class="menu-item" onclick="addStaticPhysics(), hide()">Add Static Physics</div>
-    <div class="menu-item" onclick="addPhysics(), hide()">Add Physics</div>
-    <div class="menu-item" onclick="deletePhysics()">Delete Physics</div>
-    <div class="menu-item" onclick="addCloth(), hide()">add Cloth Simulation 🧪</div>
+    
+    <h3>Phisics</h3>
+    
+    <div class="menu-item" onclick="hide(), showMenu('clothesMenu')"><img src="icons/cloth.svg">Cloth</div>
+
+    <div class="menu-item" onclick="hide(), showMenu('particlesMenu')"><img src="icons/particles.svg">Particles</div>
+    
+    <div class="menu-item" onclick="addSea(), hide()"><img src="icons/ocean.svg">Ocean</div>
+    
   </div>
+  
+  <!-- Particles -->
+  <div id="particlesMenu" class="menu">
+    
+    <h3>Particle Presets</h3>
+    
+    <div class="menu-item" onclick="addFireParticles(), hide()"><img src="icons/particles.svg">Fire Particles</div>
+    
+    <div class="menu-item" onclick="addSmokeParticles(), hide()"><img src="icons/particles.svg">Smoke Particles</div>
+    
+    <div class="menu-item" onclick="addMagicParticles(), hide()"><img src="icons/particles.svg">Magic Particles</div>
+    
+    <div class="menu-item" onclick="addRainParticles(), hide()"><img src="icons/particles.svg">Rain Particles</div>
+    
+    <div class="menu-item" onclick="addSnowParticles(), hide()"><img src="icons/particles.svg">Snow Particles</div>
+    
+    <div class="menu-item" onclick="addFogParticles(), hide()"><img src="icons/particles.svg">Fog Particles</div>
+    
+    <hr>
+    
+    <h3>Particle System</h3>
+    
+    <div class="menu-item">
+      <label>Particle Type:</label>
+      <label><input type="checkbox" id="particleTypeArea"> Area</label>
+      <label><input type="checkbox" id="particleTypePoint"> Point</label>
+    </div>
+    
+    <div class="menu-item">
+      <label>Quantity:</label>
+      <input type="number" id="particleQuantity" min="1" value="100">
+    </div>
+    
+    <div class="menu-item">
+      <label>Speed:</label>
+      <input type="range" id="particleSpeed" min="0.1" max="10" step="0.1" value="1.0">
+      <span id="speedValue">1.0</span>
+    </div>
+    
+    <div class="menu-item">
+      <label>Color:</label>
+      <input type="color" id="particleColor" value="#ffffff">
+    </div>
+    
+    <div class="menu-item">
+      <label>Size:</label>
+      <input type="range" id="particleSize" min="0.1" max="5" step="0.1" value="1.0">
+      <span id="sizeValue">1.0</span>
+    </div>
+    
+    <div class="menu-item">
+      <label>Life Span (s):</label>
+      <input type="range" id="particleLifespan" min="1" max="20" step="1" value="5">
+      <span id="lifespanValue">5</span>
+    </div>
+    
+    <div class="menu-item">
+      <label>Emission Range:</label>
+      <input type="range" id="particleEmissionRange" min="1" max="50" step="1" value="10">
+      <span id="emissionRangeValue">10</span>
+    </div>
+   
+    <div class="menu-item">
+      <label>Rotation Speed:</label>
+      <input type="range" id="particleRotationSpeed" min="0" max="5" step="0.1" value="0.5">
+      <span id="rotationSpeedValue">0.5</span>
+    </div>
+    
+    <div class="menu-item">
+      <label>Initial Scale:</label>
+      <input type="range" id="particleInitialScale" min="0.1" max="5" step="0.1" value="1.0">
+      <span id="initialScaleValue">1.0</span>
+    </div>
+  
+    <div class="menu-item">
+      <label>Final Scale:</label>
+      <input type="range" id="particleFinalScale" min="0.1" max="5" step="0.1" value="0.1">
+      <span id="finalScaleValue">0.1</span>
+    </div>
+    
+    <div class="menu-item">
+      <label>Gravity Effect:</label>
+      <input type="checkbox" id="particleGravity">
+    </div>
+    
+    <div class="menu-item">
+      <label>Bounce Effect:</label>
+      <input type="checkbox" id="particleBounce">
+    </div>
+    
+    <div class="menu-item" onclick="addCustomParticles()"><img src="icons/particles.svg">Generate Particles </div>
+
+    
+  </div>
+  
+  <div id="clothesMenu" class="menu">
+  <div id="toLeft" class="menu-item" onclick="addCloth(), hide()"><img src="icons/cloth.svg">Generate Cloth</div>
+  <div class="menu-item">
+    <label for="clothWidth">Width: </label>
+    <input type="number" id="clothWidth" value="10" />
+  </div>
+  <div class="menu-item">
+    <label for="clothHeight">Height: </label>
+    <input type="number" id="clothHeight" value="10" />
+  </div>
+  <div class="menu-item">
+    <label for="segments">Segments: </label>
+    <input type="number" id="segments" value="12" />
+  </div>
+  <div class="menu-item">
+    <label for="clothMass">Mass: </label>
+    <input type="number" id="clothMass" value="0.1" />
+  </div>
+  <div class="menu-item">
+    <label for="clothElasticity">Elasticity: </label>
+    <input type="number" id="clothElasticity" value="0.8" step="0.1" />
+  </div>
+  <div class="menu-item">
+    <label for="clothFriction">Friction: </label>
+    <input type="number" id="clothFriction" value="0.2" step="0.1" />
+  </div>
+  <div class="menu-item">
+    <label for="clothDamping">Damping: </label>
+    <input type="number" id="clothDamping" value="0.1" step="0.01" />
+  </div>
+</div>
 
   <!-- Scene Menu -->
   <div id="sceneMenu" class="menu">
@@ -332,7 +465,7 @@
     <input type="checkbox" id="toggleHdri" checked />
     
     <div id="renderedImage"></div>
-    <button onclick="renderVideo()">Render Video</button>
+    <button onclick="renderVideo(), checkCCapture()">Render Video</button>
     <button id="saveRender">Save Render</button>
     
   </div>
@@ -372,6 +505,10 @@
   <div class="menu-item" onclick="showMenu('addonMenu')">Addons</div>
 
   <div class="menu-item" onclick="showMenu('themeMenu')">Themes</div>
+  
+  <label>Rotation Sensitivity
+  <input id="sensibility" min="0.2" max="1" type="range" step="0.1">
+</label>
   
  </div>
  
@@ -448,11 +585,15 @@
   
   <!-- Shading Modes -->
   <div id="viewModePanel">
+    <button onclick="changeCamera()"><img src="icons/camera.svg"></button>
+    
+    <sep></sep>
+    
     <button id="wireframeShading"><img src="icons/shading_wire.svg"></button>
     <button id="solidShading"><img src="icons/shading_solid.svg"></button>
     <button id="textureShading"><img src="icons/shading_texture.svg"></button>
     <button id="renderedShading"><img src="icons/shading_rendered.svg"></button>
-  </div>
+  </div> 
 
   <!-- Undo y Redo -->
   <div id="undoRedo">
@@ -472,7 +613,7 @@
       <button onclick="deleteSel()"><img src="icons/trash.svg"></button>
       <button onclick="duplicateSel()"><img src="icons/duplicate.svg"></button>
       <button onclick="groupSel()"><img src="icons/group.svg"></button>
-      <button id="ungroupSel" onclick="ungroupSel"><img src="icons/ugroup.svg"></button>
+      <button onclick="centerSel()"><img src="icons/cursor.svg"></button>
       <button onclick="hideSel()"><img src="icons/hide_off.svg"></button>
       <button onclick="renameSel()"><img src="icons/rename.svg"></button>
       <button onclick="lockSel()"><img src="icons/unlocked.svg" id="lock"></button>
@@ -543,10 +684,10 @@
     <button id="pauseButton"></button>
     <button id="prevButton"><img src="icons/frame_prev.svg"></button>
     <button id="nextButton"><img src="icons/frame_next.svg"></button>
-    
     <hr>
-    <button id="extraAnimTools"onclick="showMenu('keyframeExtraButtons')"><img src="icons/tria_up.svg"></button>
+    <div id="extraAnimTools" onclick="showMenu('keyframeExtraButtons')"><img src="icons/tria_up.svg"></div>
     <hr>
+    <input type="number" class="frames" id="frameNumber" value="0"/>
     <div id="transitionSelector">
       <select id="transitions">
         <option value="linear">Linear</option>
@@ -576,8 +717,11 @@
       <button onclick="attachSkeleton()"><img src="icons/linked.svg">Attach</button>
       <button onclick="detachSkeleton()"><img src="icons/unlinked.svg">Detach</button>
       
+      <button onclick="mirrorMode()"><img src="icons/mirror.svg">Mirror</button>
+      
       <button onclick="showMenu('poseEditMenu')"><img src="icons/skeleton.svg">Pose</button>
-      <button onclick="showMenu('controllerEditMenu')"><img src="icons/empty.svg">Controller</button>
+      
+      <button onclick="showMenu('controllerEditMenu')"><img src="icons/empty.svg">Control</button>
       <button onclick="showMenu('dynamicsEditMenu')"><img src="icons/dynamics_bone.svg">Dynamics</button>
       <button onclick="showMenu('ikEditMenu')"><img src="icons/inverse_kinematic.svg">Kinematic</button>
       <button onclick="showMenu('weightEditMenu')"><img src="icons/vertex_weight.svg">Weight</button>
@@ -585,14 +729,23 @@
       
       
       <div id="poseEditMenu" class="editMenu">
+        
         <h3>Poses</h3>
+        
         <button onclick="savePose()">Save Pose</button>
-        <button onclick="loadPose()">Load Pose</button>
+        <button onclick="fixBoneChain()">Rename Chain</button>
+        <button class="alert" onclick="deleteSavedPoses()">Delete poses</button>
+        
         <hr>
-        <div id="posePresets">
-          
-        </div>
-      </div>
+        
+        <div id="savedPoses"></div>
+        
+        <hr>
+        
+        <div id="savedKeyframes"></div>
+        
+     </div>
+        
       <div id="controllerEditMenu"class="editMenu">
         <h3>Controllers</h3>
         <button onclick="addController()">add Controller</button>
@@ -609,7 +762,7 @@
           <button onclick="setAncle()">Ancle</button>
           <button onclick="setController()">Controller</button>
           
-          <button onclick="setupIK()">Setup IK</button>
+          <button onclick="createIKChain()">Setup IK</button>
         </div>
         
        <div id="weightEditMenu" class="editMenu">
@@ -643,7 +796,7 @@
   <script src="rigging.js"></script>
   <script src="addons.js"></script>
   <script src="sceneView.js"></script>
-  
+  <script src="renderEngine.js"></script>
   <script src="animationSystem.js"></script>
   <script src="undoRedoManager.js"></script>
 </html>

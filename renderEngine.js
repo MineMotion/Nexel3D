@@ -136,3 +136,57 @@ function saveRenderedImage() {
   }
 }
 document.getElementById('saveRender').addEventListener('click', saveRenderedImage);
+
+
+/* Render Video */
+function renderVideo() {
+  const capturer = new CCapture({ format: 'webm', framerate: 30 });
+  let currentFrame = 0;
+  const totalFrames = 30;
+
+  scene.traverse((object) => {
+    if (
+      object instanceof THREE.GridHelper ||
+      object instanceof THREE.Bone ||
+      object instanceof THREE.AxesHelper ||
+      object instanceof THREE.TransformControls ||
+      object.userData.id === 'bone' ||
+      object.userData.id === 'exclude'
+    ) {
+      object.visible = false;
+    }
+  });
+
+  capturer.start();
+
+  function renderNextFrame() {
+    if (currentFrame > totalFrames) {
+      capturer.stop();
+      capturer.save((blob) => {
+        const videoURL = URL.createObjectURL(blob);
+        const videoElement = document.createElement('video');
+        videoElement.src = videoURL;
+        videoElement.controls = true;
+
+        const renderedImageContainer = document.getElementById('renderedImage');
+        renderedImageContainer.innerHTML = '';
+        renderedImageContainer.appendChild(videoElement);
+      });
+
+      scene.traverse((object) => {
+        object.visible = true;
+      });
+
+      return;
+    }
+
+    timeline.setFrame(currentFrame); // Asegúrate de tener este método implementado
+    renderer.render(scene, camera);
+    capturer.capture(renderer.domElement);
+    currentFrame++;
+
+    requestAnimationFrame(renderNextFrame);
+  }
+
+  renderNextFrame();
+}

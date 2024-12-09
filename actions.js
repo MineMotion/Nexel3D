@@ -240,6 +240,98 @@ function groupSel() {
   });
 }
 
+/* Center */
+function centerSel() {
+  const previousCameraState = {
+    position: camera.position.clone(),
+    target: controls.target.clone()
+  };
+
+  let selectedObject = null;
+
+  scene.traverse((object) => {
+    if (object.userData.SelectedObject) {
+      selectedObject = object;
+    }
+  });
+
+  if (!selectedObject) return;
+
+  removeAllEdgeOutlines();
+
+  const box = new THREE.Box3().setFromObject(selectedObject);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const distance = maxDim * 2;
+
+  const newCameraState = {
+    position: center.clone().add(new THREE.Vector3(distance, distance, distance)),
+    target: center.clone()
+  };
+
+  const tweenPosition = new TWEEN.Tween(camera.position)
+    .to({
+      x: newCameraState.position.x,
+      y: newCameraState.position.y,
+      z: newCameraState.position.z
+    }, 500) // Duración en milisegundos
+    .easing(TWEEN.Easing.Quadratic.Out);
+
+  const tweenTarget = new TWEEN.Tween(controls.target)
+    .to({
+      x: newCameraState.target.x,
+      y: newCameraState.target.y,
+      z: newCameraState.target.z
+    }, 500)
+    .easing(TWEEN.Easing.Quadratic.Out);
+
+  tweenPosition.onUpdate(() => {
+    renderer.render(scene, camera);
+  });
+
+  tweenTarget.onUpdate(() => {
+    controls.update();
+    renderer.render(scene, camera);
+  });
+
+  tweenPosition.start();
+  tweenTarget.start();
+  
+  const duration = 500;
+  let startTime = performance.now();
+
+  function updateTween() {
+    const currentTime = performance.now();
+    const elapsed = currentTime - startTime;
+
+    if (elapsed < duration) {
+      TWEEN.update();
+      requestAnimationFrame(updateTween);
+    } else {
+      TWEEN.update(); // Asegura el último frame
+      renderer.render(scene, camera);
+    }
+  }
+
+  updateTween();
+
+  undoRedoManager.addAction({
+    undo: () => {
+      camera.position.copy(previousCameraState.position);
+      controls.target.copy(previousCameraState.target);
+      controls.update();
+      renderer.render(scene, camera);
+    },
+    redo: () => {
+      camera.position.copy(newCameraState.position);
+      controls.target.copy(newCameraState.target);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+  });
+}
+
 /* Hide */
 function hideSel() {
   const hiddenData = [];
@@ -485,4 +577,97 @@ function fixSel() {
   });
 }
 
+/* Change Camera */
+function changeCamera() {
+  let selectedCamera = null;
+
+  scene.traverse((object) => {
+    if (object instanceof THREE.Camera && object.userData.SelectedObject) {
+      selectedCamera = object;
+    }
+  });
+
+  if (selectedCamera) {
+    let followCamera = selectedCamera.userData.followCamera || false;
+
+    if (followCamera) {
+      selectedCamera.userData.followCamera = false;
+
+      let direction = new THREE.Vector3();
+      selectedCamera.getWorldDirection(direction);
+      camera.position.copy(selectedCamera.position).add(direction.multiplyScalar(-0.5));
+      camera.rotation.copy(selectedCamera.rotation);
+      controls.update();
+      renderer.render(scene, camera);
+    } else {
+      selectedCamera.userData.followCamera = true;
+      camera.position.copy(selectedCamera.position);
+      camera.rotation.copy(selectedCamera.rotation);
+      controls.update();
+      renderer.render(scene, camera);
+
+      function syncSelectedCamera() {
+        if (selectedCamera.userData.followCamera) {
+          selectedCamera.position.copy(camera.position);
+          selectedCamera.rotation.copy(camera.rotation);
+          renderer.render(scene, camera);
+          requestAnimationFrame(syncSelectedCamera);
+        }
+      }
+
+      syncSelectedCamera();
+    }
+  } else {
+    console.log("No hay cámara seleccionada.");
+  }
+}
+
 /* Save Projects */
+function saveProject(projectName) {
+  const dbRequest = indexedDB.open("NexelProjectsDB", 1);
+
+  dbRequest.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains("projects")) {
+      db.createObjectStore("projects", { keyPath: "id", autoIncrement: true });
+    }
+  };
+
+  dbRequest.onsuccess = (event) => {
+    const db = event.target.result;
+    const transaction = db.transaction("projects", "readwrite");
+    const store = transaction.objectStore("projects");
+
+    const objectsToSave = [];
+    scene.traverse((object) => {
+      if (object.isMesh || object.isObject3D) {
+        objectsToSave.push(object.toJSON());
+      }
+    });
+
+    const projectData = {
+      name: projectName,
+      createdAt: new Date().toISOString(),
+      objects: objectsToSave,
+    };
+
+    store.add(projectData);
+
+    transaction.oncomplete = () => {
+      console.log(`Project "${projectName}" saved successfully.`);
+
+      const addMenu = document.getElementById("addMenu");
+      const projectElement = document.createElement("div");
+      projectElement.textContent = projectName;
+      addMenu.appendChild(projectElement);
+    };
+
+    transaction.onerror = (err) => {
+      console.error("Error saving project: ", err);
+    };
+  };
+
+  dbRequest.onerror = (err) => {
+    console.error("Error opening IndexedDB: ", err);
+  };
+}

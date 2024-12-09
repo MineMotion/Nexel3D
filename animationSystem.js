@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 }
-  
 
   const keyframeButton = document.getElementById('keyframeButton');
   keyframeButton.addEventListener('click', () => {
@@ -138,11 +137,13 @@ copyButton.addEventListener('click', () => {
 
   function getSelectedObject() {
   let selectedObject = null;
+  
   scene.traverse((object) => {
     if (object.userData.SelectedObject) {
       selectedObject = object;
     }
   });
+
   return selectedObject;
 }
 
@@ -193,9 +194,15 @@ copyButton.addEventListener('click', () => {
     }
   }
 }
-
+  document.getElementById('frameNumber').addEventListener('input', function() {
+    currentFrame = Math.max(0, Math.min(parseInt(this.value, 10) || 0, totalFrames));
+    frameCursor.style.left = `${(currentFrame / totalFrames) * 100}%`;
+  });
+  
   function renderFrameCursor() {
     frameCursor.style.left = `${(currentFrame / totalFrames) * 100}%`;
+    const frameNumberInput = document.getElementById('frameNumber');
+    frameNumberInput.value = currentFrame;
   }
 
   function getEasingFunction(t) {
@@ -337,26 +344,28 @@ copyButton.addEventListener('click', () => {
   let lastScale = null;
 
 function detectObjectChanges() {
-  const selectedObject = getSelectedObject();
-  if (!selectedObject) return;
+  const selectedObjects = getSelectedObjects();
+  if (selectedObjects.length === 0) return;
 
-  if (!lastPosition || !lastRotation || !lastScale) {
-    lastPosition = selectedObject.position.clone();
-    lastRotation = selectedObject.rotation.clone();
-    lastScale = selectedObject.scale.clone();
-  }
-  
-  const hasPositionChanged = !selectedObject.position.equals(lastPosition);
-  const hasRotationChanged = !selectedObject.rotation.equals(lastRotation);
-  const hasScaleChanged = !selectedObject.scale.equals(lastScale); // Corregido la variable
+  selectedObjects.forEach((selectedObject) => {
+    if (!lastPosition || !lastRotation || !lastScale) {
+      lastPosition = selectedObject.position.clone();
+      lastRotation = selectedObject.rotation.clone();
+      lastScale = selectedObject.scale.clone();
+    }
 
-  if (autoKeyActive && (hasPositionChanged || hasRotationChanged || hasScaleChanged)) {
-    addKeyframeIfChanged(selectedObject);
-  }
+    const hasPositionChanged = !selectedObject.position.equals(lastPosition);
+    const hasRotationChanged = !selectedObject.rotation.equals(lastRotation);
+    const hasScaleChanged = !selectedObject.scale.equals(lastScale);
 
-  if (hasPositionChanged) lastPosition.copy(selectedObject.position);
-  if (hasRotationChanged) lastRotation.copy(selectedObject.rotation);
-  if (hasScaleChanged) lastScale.copy(selectedObject.scale);
+    if (autoKeyActive && (hasPositionChanged || hasRotationChanged || hasScaleChanged)) {
+      addKeyframeIfChanged(selectedObject);
+    }
+
+    if (hasPositionChanged) lastPosition.copy(selectedObject.position);
+    if (hasRotationChanged) lastRotation.copy(selectedObject.rotation);
+    if (hasScaleChanged) lastScale.copy(selectedObject.scale);
+  });
 }
 
 function addKeyframeIfChanged(selectedObject) {
@@ -385,3 +394,5 @@ monitorObjectChanges();
 renderKeyframes();
 addFrameNumbers()
 });
+
+

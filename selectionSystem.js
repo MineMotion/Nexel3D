@@ -205,8 +205,7 @@ function onTouchEnd() {
 /* Outline de Selección */
 const edgeMaterial = new THREE.LineBasicMaterial({
   color: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim(),
-  linewidth: 6,
-  depthTest: true,
+  linewidth: 4,
   depthWrite: false,
 });
 function addEdgeOutline(object) {

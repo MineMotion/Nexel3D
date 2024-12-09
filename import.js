@@ -430,7 +430,7 @@ function addCylinder() {
   addObjectToScene(cylinder);
 }
 function addPyramid() {
-  const geometry = new THREE.ConeGeometry(1, 1.5, 4);
+  const geometry = new THREE.ConeGeometry(0.5, 1, 20);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const pyramid = new THREE.Mesh(geometry, material);
   pyramid.name = "pyramid";
@@ -441,11 +441,13 @@ function addPyramid() {
   addObjectToScene(pyramid);
 }
 function addToroid() {
-  const geometry = new THREE.TorusGeometry(1, 0.4, 16, 100);
+  const geometry = new THREE.TorusGeometry(1, 0.4, 16, 30);
   const material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
   const toroid = new THREE.Mesh(geometry, material);
-  toroid.name = "toroid";
+  toroid.name = "Torus";
   toroid.position.set(0, 0, 0);
+  toroid.rotation.x = Math.PI/2;
+  toroid.scale.set(0.5, 0.5, 0.5);
   toroid.castShadow = true;
   toroid.receiveShadow = true;
 
@@ -488,11 +490,46 @@ function addMonkey() {
     object.traverse(function(child) {
       if (child.isMesh) {
         child.material = material;
+        child.receiveShadow = true;
+        child.castShadow = true;
         child.scale.set(0.5, 0.5, 0.5);
+        child.rotation.y = Math.PI/2;
         addObjectToScene(child);
       }
     });
   });
+}
+function addEmpty() {
+  const size = 0.3;
+
+  const geometryX = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-size, 0, 0),
+    new THREE.Vector3(size, 0, 0),
+  ]);
+
+  const geometryY = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, -size, 0),
+    new THREE.Vector3(0, size, 0),
+  ]);
+
+  const geometryZ = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, -size),
+    new THREE.Vector3(0, 0, size),
+  ]);
+
+  const material = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1.5 });
+
+  const lineX = new THREE.Line(geometryX, material);
+  const lineY = new THREE.Line(geometryY, material);
+  const lineZ = new THREE.Line(geometryZ, material);
+
+  const emptyObject = new THREE.Object3D();
+  emptyObject.add(lineX, lineY, lineZ);
+
+  emptyObject.name = 'Empty';
+  emptyObject.position.set(0, 0, 0);
+
+  addObjectToScene(emptyObject);
 }
 let videoElement = null;
 let isVideoPlaying = false;
@@ -603,6 +640,10 @@ function addDirectionalLight() {
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
   directionalLight.position.set(1, 2, -1);
   directionalLight.castShadow = true;
+  directionalLight.shadow.mapSize.height = 2080;
+  directionalLight.shadow.mapSize.width = 2080;
+  directionalLight.shadow.radius = 8000;
+  directionalLight.shadow.bias = -0.000000001;
   addObjectToScene(directionalLight, addLightIcon());
 }
 function addSpotLight() {
@@ -620,7 +661,7 @@ function addAmbientLight() {
 }
 function addHemisphereLight() {
   const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x0000ff, 0.5);
-  hemisphereLight.position.set(0, 0, 0);
+  hemisphereLight.position.set(0, 4, 0);
   hemisphereLight.castShadow = false;
   const helper = new THREE.HemisphereLightHelper(hemisphereLight, 1);
   addObjectToScene(hemisphereLight, addLightIcon());
@@ -660,8 +701,8 @@ function addLine() {
 function addDashedLine() {
   const material = new THREE.LineDashedMaterial({
     color: 0xffffff,
-    dashSize: 3,
-    gapSize: 1,
+    dashSize: 0.3,
+    gapSize: 0.2,
   });
   const points = [
     new THREE.Vector3(-5, 0, 0),

@@ -1,0 +1,175 @@
+:root {
+  /* Primary Background Colors */
+  --bg-primary: #333333;
+  --bg-secondary: #1E1E1E;
+  --bg-light: #707070;
+  --bg-dark: #131313;
+
+  --bg-opacity: #272727E0;
+  --bg-opacity-sec: #1F1F1FE0;
+
+  /* Button Colors */
+  --btn-primary: #464646;
+  --btn-secondary: #393939;
+  --btn-light: #929292;
+  --btn-dark: #2C2C2C;
+
+  --btn-alert: #F42434;
+
+  /* Text Colors */
+  --txt-primary: #dcdcdc;
+  --txt-secondary: #7a7a7a;
+  --txt-light: #f0f0f0;
+  --txt-dark: #1a1a1a;
+
+  /* Accent Colors */
+  --accent-primary: #FF8000;
+  --accent-secondary: #5EA8EA;
+  --accent-detail: #D38900;
+
+  /* Border Colors */
+  --border-primary: #505050;
+  --border-secondary: #424242;
+
+  --border-accent: #FFA54F;
+
+  /* Scene */
+  --scene-bg: #3D3D3D;
+}
+
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--txt-primary);
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  overflow: hidden;
+}
+
+button {
+  background-color: var(--btn-primary);
+  color: var(--txt-primary);
+  border: none;
+  border-radius: 3px;
+  padding: 5px;
+  margin: 5px;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-3px);
+  transition: transform 0.3s ease;
+}
+
+img {
+  width: 20px;
+  height: 20px;
+  margin: 0px;
+  border-radius: 10px;
+}
+
+#header {
+  display: flex;
+  background-color: var(--bg-primary);
+  position: absolute;
+  top: 0;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+#header button, img {
+  background-color: transparent;
+  width: 30px;
+  height: 30px;
+}
+#nexelLogo {
+  width: 45px;
+  height: 45px;
+  margin: 10px;
+}
+
+/* Project List */
+#projectList {
+  background-color: var(--bg-secondary);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 10px;
+  padding: 20px;
+  border-radius: 8px;
+  position: absolute;
+  top: 80px;
+  left: 5%;
+  right: 5%;
+  height: 80%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#projectCard {
+  background-color: var(--bg-primary);
+  color: var(--txt-light);
+  padding: 10px;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 14px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease-in-out;
+}
+
+#projectCard:hover {
+  transform: scale(1.05);
+}
+
+#projectScreenshot {
+  width: 80px;
+  height: 80px;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+#projectList img {
+  width: 100%;
+  height: auto;
+  margin: 0px;
+  border-radius: 10px;
+}
+
+#newProject {
+  position: fixed;
+  background-color: var(--accent-primary);
+  color: var(--txt-light);
+  font-weight: bold;
+  border-radius: 5px;
+  width: 50%;
+  height: 40;
+  font-size: 20px;
+  bottom: 5px;
+}
+
+@media (orientation: landscape) {
+  #projectList {
+    height: 65%;
+    width: 85%;
+    left: 10px;
+  }
+  
+  #newProject {
+    top: 80px;
+    height: 40px;
+    width: 90px;
+    margin: 0 5px;
+    font-size: 15px;
+    border-radius: 5px;
+    right: 0;
+  }
+}
