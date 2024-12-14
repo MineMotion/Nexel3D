@@ -104,6 +104,8 @@
     
     <div class="menu-item" onclick="showMenu('lightMenu')"><img src="icons/light.svg">Light</div>
     
+    <div class="menu-item" onclick="showMenu('presetMenu')"><img src="icons/preset.svg">Presets</div>
+    
     <hr>
     
     <div class="menu-item" onclick="addBone(), hide()"><img src="icons/bone.svg">Bone</div>
@@ -127,7 +129,7 @@
     
     <div onclick="window.location.href='index.html'" class="menu-item"><img src="icons/home.svg">Home</div>
     
-    <div onclick="saveProject('New Project')" id="saveProject" class="menu-item"><img src="icons/preset.svg">Save</div>
+    <div onclick="saveProject()" id="saveProject" class="menu-item"><img src="icons/preset.svg">Save</div>
     
     <div onclick="showMenu('renderMenu'), renderImage()" class="menu-item"><img src="icons/render_still.svg">Render</div>
     
@@ -149,7 +151,10 @@
     <div id="meshTools" class="toolMenu">
       <h4>Name</h4>
       <button onclick="showMenu('materialMode')">Material</button>
-      <button onclick="quickTexture">Textura Rápida</button>
+      <button onclick="quickTexture()">Textura Rápida</button>
+      
+      <hr>
+      <button onclick="presetSel()">Save Preset</button>
       <hr>
       <h5>Phisics</h5>
       <button onclick="addStaticPhysics()">Static</button>
@@ -251,7 +256,12 @@
   <!-- Presets Menu -->
   <div id="presetMenu" class="menu">
     
-    <h3>Prefabs</h3>
+    <button onclick="presetSel()"><img src="icons/preset_new.svg">Save Preset</button>
+    <button class="alert" onclick="deletePresets()"><img src="icons/trash.svg">Delete Preset</button>
+    
+    <h3>Presets</h3>
+    
+    <div id="presetsContainer"></div>
     
   </div>
   
@@ -260,11 +270,13 @@
     
     <h3>Phisics</h3>
     
+    <div class="menu-item" onclick="hide(), showMenu('rigidBodyMenu')"><img src="icons/physics.svg">Rigid Body</div>
+    
     <div class="menu-item" onclick="hide(), showMenu('clothesMenu')"><img src="icons/cloth.svg">Cloth</div>
 
     <div class="menu-item" onclick="hide(), showMenu('particlesMenu')"><img src="icons/particles.svg">Particles</div>
     
-    <div class="menu-item" onclick="addSea(), hide()"><img src="icons/ocean.svg">Ocean</div>
+    <div class="menu-item" onclick="addSea(), hide()"><img src="icons/ocean.svg">Plane Ocean</div>
     
   </div>
   
@@ -394,6 +406,37 @@
   </div>
 </div>
 
+  <div id="rigidBodyMenu" class="menu">
+  <div id="toLeft" class="menu-item" onclick="addPhysics(), hide()">
+    <img src="icons/physics.svg">Apply Rigid Body
+  </div>
+
+  <div class="menu-item">
+    Mass:
+    <input id="rigidMass" type="number" value="1" step="0.1" min="0" />
+  </div>
+
+  <div class="menu-item">
+    Shape:
+    <button id="rigidShapeBtn" onclick="toggleShape()">Box</button>
+  </div>
+
+  <div class="menu-item">
+    Friction:
+    <input id="rigidFriction" type="number" value="0.3" step="0.1" min="0" />
+  </div>
+
+  <div class="menu-item">
+    Elasticity:
+    <input id="rigidRestitution" type="number" value="0.3" step="0.1" min="0" />
+  </div>
+
+  <div class="menu-item">
+    Type:
+    <button id="rigidTypeBtn" onclick="toggleRigidBodyType()">Dynamic</button>
+  </div>
+</div>
+
   <!-- Scene Menu -->
   <div id="sceneMenu" class="menu">
     
@@ -465,8 +508,14 @@
     <input type="checkbox" id="toggleHdri" checked />
     
     <div id="renderedImage"></div>
-    <button onclick="renderVideo(), checkCCapture()">Render Video</button>
+    <button onclick="renderImage()">Render Image</button>
     <button id="saveRender">Save Render</button>
+    
+    <div>
+          <h3>Informacion</h3>
+
+    El sistema de renderizado aun esta en desarrollo, por ahora solamente podras renderizar y guardar las imagenes, en una futura version (1.6 a 1.9) se trabajara en el renderizado de videos
+    </div>
     
   </div>
   
@@ -559,6 +608,7 @@
  
   <!-- Transform Controls -->
   <div class="transformControls">
+    <button onclick="toggleTransformControls()" id="transformButtons"><img src="icons/three_dots.svg"></button>
     <button id="selectArea"><img src="icons/area_select.svg">Area</button>
     <hr>
     <button id="pos"><img src="icons/con_loclimit.svg">Pos</button>
@@ -572,16 +622,16 @@
   
   <!-- Action bar -->
   <div class="actionBar">
-    <button onclick="deleteSel()"><img src="icons/trash.svg">delete</button>
-    <button onclick="duplicateSel()"><img src="icons/duplicate.svg">Copy</button>
-    <button onclick="groupSel()"><img src="icons/group.svg">Group</button>
-    <button onclick="hideSel()"><img src="icons/hide_off.svg">Hide</button>
-    
-    <hr>
-    
-    <button onclick="fixSel()"><img src="icons/fix.svg">Fix</button>
-    
-  </div>
+  <button onclick="toggleActionButtons()" id="actionButtons"><img src="icons/three_dots.svg"></button>
+  <button onclick="deleteSel()"><img src="icons/trash.svg">delete</button>
+  <button onclick="duplicateSel()"><img src="icons/duplicate.svg">Copy</button>
+  <button onclick="groupSel()"><img src="icons/group.svg">Group</button>
+  <button onclick="hideSel()"><img src="icons/hide_off.svg">Hide</button>
+
+  <hr>
+
+  <button onclick="fixSel()"><img src="icons/fix.svg">Fix</button>
+</div>
   
   <!-- Shading Modes -->
   <div id="viewModePanel">
@@ -616,7 +666,7 @@
       <button onclick="centerSel()"><img src="icons/cursor.svg"></button>
       <button onclick="hideSel()"><img src="icons/hide_off.svg"></button>
       <button onclick="renameSel()"><img src="icons/rename.svg"></button>
-      <button onclick="lockSel()"><img src="icons/unlocked.svg" id="lock"></button>
+      <button onclick="presetSel()"><img src="icons/preset_new.svg"></button>
       <button onclick="parentSel()"><img src="icons/parent.svg"></button>
     </div>
   </div>
@@ -670,14 +720,27 @@
   </div>
 
   <!-- Animation Mode-->
+  <button id="animationModeBtn" onclick="showTimeline()"><img src="icons/tria_up.svg"></button>
+  
   <div id="animationMode" style="display: none">
     
   <div id="keyframeExtraButtons">
+    
     <button id="copyButton">
-    <img src="icons/duplicate.svg" alt="Copy">
-  </button>
+    <img src="icons/duplicate.svg" alt="Copy"></button>
     
     <button id="clearAnimation"><img src="icons/trash.svg"></button>
+    
+    <hr>
+    
+    <button id="objectModeBtn" onclick="showTimeline()"><img src="icons/tria_down.svg"></button>
+    
+    <hr>
+    
+    <button id="zoomOut"><img src="icons/zoomOut.svg"></button>
+    
+    <button id="zoomIn"><img src="icons/zoomIn.svg"></button>
+    
   </div>
     
   <div id="keyframeButtons">
@@ -685,9 +748,8 @@
     <button id="prevButton"><img src="icons/frame_prev.svg"></button>
     <button id="nextButton"><img src="icons/frame_next.svg"></button>
     <hr>
-    <div id="extraAnimTools" onclick="showMenu('keyframeExtraButtons')"><img src="icons/tria_up.svg"></div>
-    <hr>
     <input type="number" class="frames" id="frameNumber" value="0"/>
+    <hr>
     <div id="transitionSelector">
       <select id="transitions">
         <option value="linear">Linear</option>
@@ -700,12 +762,11 @@
     </div>
     <hr>
     <button id="autoKey" class="autoKey"><img src="icons/autokey_off.svg"></button>
-    <button class="actionBtn" id="keyframeButton"><img src="icons/keyframe.svg"></button>
+    <button id="keyframeButton"><img src="icons/keyframe.svg"></button>
   </div>
   
   <div id="timelineContainer">
     <div id="timeline"></div>
-    <div id="timeline-numbers"></div>
   </div>
   
   </div>
@@ -727,7 +788,6 @@
       <button onclick="showMenu('weightEditMenu')"><img src="icons/vertex_weight.svg">Weight</button>
       
       
-      
       <div id="poseEditMenu" class="editMenu">
         
         <h3>Poses</h3>
@@ -739,8 +799,6 @@
         <hr>
         
         <div id="savedPoses"></div>
-        
-        <hr>
         
         <div id="savedKeyframes"></div>
         
@@ -759,10 +817,20 @@
         
       <div id="ikEditMenu" class="editMenu">
           <h3>Inverse Kinematics</h3>
-          <button onclick="setAncle()">Ancle</button>
-          <button onclick="setController()">Controller</button>
+
           
-          <button onclick="createIKChain()">Setup IK</button>
+          <button onclick="createChain()">Setup IK Chain</button>
+          
+          <hr>
+          
+          <h3>Chain Configs</h3>
+          
+          <label>Lock Controller<input type="checkbox" name="lockControllerBone" id="lockControllerBone"></label>
+          
+          <br>
+          
+          <label>Bone Elasticity <input type="checkbox" name="boneElasticity" id="boneElasticity"></label>
+          
         </div>
         
        <div id="weightEditMenu" class="editMenu">
@@ -773,6 +841,8 @@
             <option value="constant">Constante</option>
             <option value="exponential">Exponencial</option>
           </select>
+          
+          <button onclick="verifyWeight()">Verify Weights</button>
         </div>
       
     </div>
@@ -798,5 +868,6 @@
   <script src="sceneView.js"></script>
   <script src="renderEngine.js"></script>
   <script src="animationSystem.js"></script>
+  <script src="editMode.js"></script>
   <script src="undoRedoManager.js"></script>
 </html>

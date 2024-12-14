@@ -1,64 +1,94 @@
 function cargarAddon() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.js';
-  input.multiple = true;
+  input.accept = '.js,.zip';
 
   input.onchange = async (event) => {
-    const files = event.target.files;
-    if (files.length > 0) {
-      let needToReload = false;
+    const file = event.target.files[0];
+    if (file) {
+      if (file.name.endsWith('.zip')) {
+        const zip = await JSZip.loadAsync(file);
+        const addonsContent = [];
 
-      for (let file of files) {
+        for (let filename in zip.files) {
+          if (filename.endsWith('.js')) {
+            const scriptContent = await zip.files[filename].async('string');
+            addonsContent.push(scriptContent);
+          }
+        }
+
+        const zipAddonName = file.name.replace('.zip', '');
+        instalarAddonDesdeContenido(zipAddonName, addonsContent.join('\n'));
+        alert(`El addon "${zipAddonName}" ha sido instalado correctamente.`);
+      } else if (file.name.endsWith('.js')) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          const scriptContent = e.target.result;
-          const addonName = file.name;
-
-          const addons = JSON.parse(localStorage.getItem('addons')) || [];
-          const existingAddonIndex = addons.findIndex(addon => addon.name === addonName);
-
-          if (existingAddonIndex !== -1) {
-            const confirmReplace = confirm(`El addon "${addonName}" ya está instalado. ¿Deseas actualizarlo? Esto podría causar la pérdida de avances.`);
-            if (!confirmReplace) return;
-
-            const existingAddon = addons[existingAddonIndex];
-            if (existingAddon.isInstalled) {
-              const oldScriptElement = document.querySelector(`#addon-${existingAddon.name}`);
-              if (oldScriptElement) {
-                oldScriptElement.remove();
-              }
-            }
-
-            removeAddonFromLocalStorage(addonName);
-            needToReload = true;
-          }
-
-          const scriptElement = document.createElement('script');
-          scriptElement.type = 'module';
-          scriptElement.id = `addon-${addonName}`;
-          scriptElement.text = scriptContent;
-
-          document.body.appendChild(scriptElement);
-
-          saveAddonToLocalStorage(addonName, scriptContent, true);
-
-          if (needToReload) {
-            const confirmReload = confirm(`Los cambios solo harán efecto al reiniciar la aplicación, ¿deseas reiniciar?`);
-            if (confirmReload) {
-              location.reload();
-            } else {
-              alert(`El addon "${addonName}" ha sido actualizado, pero necesitarás reiniciar la aplicación para que los cambios surtan efecto.`);
-            }
-          }
-
-          updateAddonInterface(addonName, true);
+          instalarAddonDesdeContenido(file.name, e.target.result);
         };
         reader.readAsText(file);
       }
     }
   };
   input.click();
+}
+
+function instalarAddonDesdeContenido(addonName, scriptContent) {
+  const addons = JSON.parse(localStorage.getItem('addons')) || [];
+  const existingAddonIndex = addons.findIndex((addon) => addon.name === addonName);
+
+  if (existingAddonIndex === -1) {
+    addons.push({ name: addonName, scriptContent, isInstalled: true });
+    localStorage.setItem('addons', JSON.stringify(addons));
+  }
+
+  const scriptElement = document.createElement('script');
+  scriptElement.type = 'module';
+  scriptElement.id = `addon-${addonName}`;
+  scriptElement.text = scriptContent;
+
+  document.body.appendChild(scriptElement);
+
+  const addonList = document.getElementById('addon-list');
+  const existingDiv = addonList.querySelector(`[data-addon="${addonName}"]`);
+
+  if (!existingDiv) {
+    const addonDiv = document.createElement('div');
+    addonDiv.classList.add('addon-item', 'submenu-option');
+    addonDiv.setAttribute('data-addon', addonName);
+
+    const addonNameElement = document.createElement('p');
+    addonNameElement.textContent = addonName;
+    addonDiv.appendChild(addonNameElement);
+
+    const installButton = document.createElement('button');
+    installButton.textContent = 'Desinstalar';
+    installButton.onclick = () => {
+      document.body.removeChild(scriptElement);
+      installButton.textContent = 'Instalar';
+      const addons = JSON.parse(localStorage.getItem('addons')) || [];
+      const updatedAddons = addons.map((addon) => {
+        if (addon.name === addonName) {
+          addon.isInstalled = false;
+        }
+        return addon;
+      });
+      localStorage.setItem('addons', JSON.stringify(updatedAddons));
+    };
+    addonDiv.appendChild(installButton);
+
+    const removeButton = document.createElement('button');
+    removeButton.textContent = 'Eliminar';
+    removeButton.onclick = () => {
+      document.body.removeChild(scriptElement);
+      const addons = JSON.parse(localStorage.getItem('addons')) || [];
+      const updatedAddons = addons.filter((addon) => addon.name !== addonName);
+      localStorage.setItem('addons', JSON.stringify(updatedAddons));
+      addonDiv.remove();
+    };
+    addonDiv.appendChild(removeButton);
+
+    addonList.appendChild(addonDiv);
+  }
 }
 
 function saveAddonToLocalStorage(name, scriptContent, isInstalled) {

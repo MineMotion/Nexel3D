@@ -18,14 +18,45 @@ function isTouchOnUIElement(event) {
   const touchedElement = document.elementFromPoint(touchX, touchY);
 
   if (touchedElement) {
-    const ignoredClasses = ["menu", "menu-item", "primary-menu"];
-    const ignoredIDs = ["meshMenu", "addMenu"];
+    const ignoredClasses = [
+      "menu", "menu-item", "primary-menu", "transformControls",
+      "keyframeExtraButtons", "keyframeButtons", "timelineContainer",
+      "extraAnimTools"
+    ];
+
+    const ignoredIDs = [
+      "meshMenu", "addMenu", "selectArea", "pos", "rot", "scl",
+      "snap-toggle", "timeline", "animationMode", "keyframeExtraButtons",
+      "keyframeButtons", "prevButton", "nextButton", "pauseButton",
+      "clearAnimation", "exportAnimations", "copyButton", "frameNumber",
+      "transitions", "autoKey", "keyframeButton"
+    ];
 
     if (ignoredClasses.some((cls) => touchedElement.classList.contains(cls))) {
       return true;
     }
 
     if (ignoredIDs.includes(touchedElement.id)) {
+      return true;
+    }
+
+    if (touchedElement.tagName === "IMG") {
+      return true;
+    }
+
+    if (touchedElement.tagName === "BUTTON") {
+      return true;
+    }
+
+    if (touchedElement.nodeType === Node.TEXT_NODE) {
+      return true;
+    }
+
+    if (touchedElement.tagName === "INPUT" || touchedElement.tagName === "SELECT" || touchedElement.tagName === "TEXTAREA") {
+      return true;
+    }
+
+    if (touchedElement.id === "timeline" || touchedElement.closest("#timelineContainer")) {
       return true;
     }
   }
@@ -46,23 +77,89 @@ function seleccionarObjeto(event) {
 
       raycaster.setFromCamera(touch, camera);
       const intersecciones = raycaster.intersectObjects(scene.children, true);
+
       const interseccionesConMalla = intersecciones.filter((interseccion) => {
         return interseccion.object instanceof THREE.Mesh && !isPartOfTransformControls(interseccion.object) && !isNoSeleccionable(interseccion.object);
       });
 
-      if (interseccionesConMalla.length > 0) {
-        const objetoTocado = interseccionesConMalla[0].object;
+      let objetoTocado = null;
 
+      for (let i = 0; i < intersecciones.length; i++) {
+        const interseccion = intersecciones[i];
+        if (interseccion.object.userData.id === 'bone') {
+          objetoTocado = interseccion.object.parent;
+          break;
+        }
+      }
+
+      // Detectamos si se selecciona la cámara y la seleccionamos correctamente
+      for (let i = 0; i < intersecciones.length; i++) {
+        const interseccion = intersecciones[i];
+        if (interseccion.object.userData.id === 'camera') {
+          objetoTocado = interseccion.object.parent; // Seleccionamos el padre (la cámara)
+          break;
+        }
+      }
+
+      // Detectamos si se selecciona una luz por su icono
+      for (let i = 0; i < intersecciones.length; i++) {
+        const interseccion = intersecciones[i];
+        if (interseccion.object.userData.id && interseccion.object.userData.id.startsWith('light-')) {
+          objetoTocado = interseccion.object.userData.light; // Seleccionamos la luz
+          break;
+        }
+      }
+
+      if (!objetoTocado && interseccionesConMalla.length > 0) {
+        objetoTocado = interseccionesConMalla[0].object;
+      }
+
+      if (objetoTocado) {
         if (objetoSeleccionado && objetoSeleccionado !== objetoTocado) {
+          if (objetoSeleccionado instanceof THREE.Bone) {
+            const boneMesh = objetoSeleccionado.children[0];
+            if (boneMesh) {
+              boneMesh.material.emissive.set(0x000000);
+            }
+          }
           objetoSeleccionado.userData.SelectedObject = false;
         }
 
         objetoTocado.userData.SelectedObject = true;
-        updateLockButton();
         updateAttachment();
+        updateOutliner();
         objetoSeleccionado = objetoTocado;
 
         console.log("Objeto seleccionado:", objetoTocado.name);
+        transformControls.attach(objetoTocado);
+
+        if (objetoTocado instanceof THREE.Bone) {
+          const boneMesh = objetoTocado.children[0];
+          if (boneMesh) {
+            boneMesh.material.emissive.set(0xff7000);
+            boneMesh.material.emissiveIntensity = 0.5;
+          }
+        }
+
+        if (objetoTocado.userData.id === 'camera') {
+          // Cambiar el color de las líneas del objeto hijo de la cámara a naranja
+          const cameraLines = objetoTocado.getObjectByName('cameraLines');
+          if (cameraLines) {
+            cameraLines.material.color.set(0xff8000);
+          }
+          objetoTocado.material.emissive.set(0x00ff00);
+        }
+
+        if (objetoTocado instanceof THREE.Light) {
+          // Al seleccionar la luz, cambiar el color del icono a verde
+          const icon = objetoTocado.getObjectByName('lightIcon');
+          if (icon) {
+            icon.material.color.set(0x00ff00);
+          }
+        }
+      } else {
+        deselectObject();
+        transformControls.detach();
       }
     }
   }
@@ -84,7 +181,7 @@ window.addEventListener('touchend', seleccionarObjeto);
 /* Deselect */
 function deselectObject() {
   scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
+    if (object.userData.SelectedObject) {
       object.userData.SelectedObject = false;
     }
   });
@@ -207,6 +304,7 @@ const edgeMaterial = new THREE.LineBasicMaterial({
   color: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim(),
   linewidth: 4,
   depthWrite: false,
+
 });
 function addEdgeOutline(object) {
   const edgesGeometry = new THREE.EdgesGeometry(object.geometry);

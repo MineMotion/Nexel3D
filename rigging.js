@@ -84,8 +84,6 @@ function addBone() {
     boneMesh.userData.id = 'bone';
     boneMesh.userData.exclude = true;
     boneMesh.visible = true;
-    boneMesh.renderOrder = 1000;
-    boneMesh.layers.set(1);
 
     const bone = new THREE.Bone();
     bone.add(boneMesh);
@@ -93,6 +91,7 @@ function addBone() {
     let targetObject = scene;
     let selectedBone = null;
 
+    // Verificar el objeto seleccionado
     scene.traverse((object) => {
       if (object.userData.SelectedObject) {
         object.userData.SelectedObject = false;
@@ -100,11 +99,27 @@ function addBone() {
       }
     });
 
+    // Asignar un número secuencial si el hueso se añade dentro de otro hueso
     if (targetObject instanceof THREE.Bone) {
       selectedBone = targetObject;
+
+      // Contar los huesos hijos para asignar un número secuencial
+      let maxNumber = 0;
+      selectedBone.traverse((child) => {
+        if (child instanceof THREE.Bone && child.name.startsWith('Bone ')) {
+          const match = child.name.match(/Bone (\d+)/);
+          if (match && parseInt(match[1]) > maxNumber) {
+            maxNumber = parseInt(match[1]);
+          }
+        }
+      });
+
+      // Asignar el nuevo nombre con el número secuencial
+      bone.name = `Bone ${maxNumber + 1}`;
       selectedBone.add(bone);
       bone.position.set(0, 1, 0);
     } else if (selectedBone === null) {
+      bone.name = 'Bone'; // Primer hueso, sin número
       targetObject.add(bone);
       bone.position.set(0, 0, 0);
     } else {
@@ -114,17 +129,55 @@ function addBone() {
 
     bone.rotation.set(0, 0, 0);
     bone.userData.SelectedObject = true;
-    bone.name = 'Bone';
     updateAttachment();
-
-    camera.layers.enable(1);
-    renderer.render(scene, camera);
+    boneMesh.depthWrite = false;
     updateOutliner();
 
-    // Crear la acción de añadir el hueso para deshacer
     const addBoneActionInstance = new AddBoneAction(bone, targetObject);
     undoRedoManager.addAction(addBoneActionInstance);
   });
+}
+function addAutoBone() {
+  const boneGeometry = new THREE.SphereGeometry(0.2, 6, 3);
+  const boneMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    depthTest: false
+  });
+
+  const bonesWithMeshes = [];
+
+  scene.traverse((object) => {
+    if (object instanceof THREE.Bone && !object.children.some(child => child.userData.id === 'bone')) {
+      const boneMesh = new THREE.Mesh(boneGeometry, boneMaterial);
+      boneMesh.userData.id = 'bone';
+      boneMesh.position.set(0, 0, 0);
+      boneMesh.rotation.copy(object.rotation);
+      object.add(boneMesh);
+      bonesWithMeshes.push(boneMesh);
+    }
+  });
+
+  const skeletonHelper = new THREE.SkeletonHelper(scene);
+  skeletonHelper.material = new THREE.LineBasicMaterial({
+    color: 0xffffff,
+    linewidth: 1,
+    depthTest: false
+  });
+  scene.add(skeletonHelper);
+
+  function updateBoneScales() {
+    const cameraPosition = camera.position;
+    const cameraFov = camera.fov * (Math.PI / 180); // Convertir FOV a radianes
+    const cameraHeightAtDistance = 2 * Math.tan(cameraFov / 2);
+
+    bonesWithMeshes.forEach((boneMesh) => {
+      const distance = boneMesh.getWorldPosition(new THREE.Vector3()).distanceTo(cameraPosition);
+      const scale = 0.04 * distance * cameraHeightAtDistance; // Ajustar para mantener tamaño constante
+      boneMesh.scale.set(scale, scale, scale);
+    });
+  }
+
+  setInterval(updateBoneScales, 10); // Llama a la función cada 0.01 segundos
 }
 function attachSkeleton() {
   let targetObject = null;
@@ -334,7 +387,7 @@ function detachSkeleton() {
 }
 
 // IK rigging
-function setAncle() {
+function setAnchor() {
   scene.traverse((object) => {
     if (object.userData.SelectedObject) {
       const boneMesh = object.children.find((child) => child.userData.id === 'bone');
@@ -372,38 +425,114 @@ function setController() {
   });
   updateOutliner();
 }
-function createIKChain() {
-  const bones = [];
+function createChain() {
+  let selectedBone = null;
+
   scene.traverse((object) => {
-    if (object.type === "Bone") {
-      bones.push(object);
+    if (object instanceof THREE.Bone && object.userData.SelectedObject) {
+      selectedBone = object;
     }
   });
 
-  const ancle = bones.find((bone) => bone.name.includes("(A)"));
-  const controller = bones.find((bone) => bone.name.includes("(C)"));
-  const intermediates = bones.filter((bone) => bone.name.includes("(I)"));
-
-  if (!ancle || !controller) {
-    console.warn("Se requiere un hueso con (A) como Ancle y un hueso con (C) como Controller para crear una cadena IK.");
+  if (!selectedBone || !selectedBone.parent || !(selectedBone.parent instanceof THREE.Bone)) {
+    console.error("Selecciona un hueso con un padre y un abuelo válido.");
     return;
   }
 
-  const chain = [ancle, ...intermediates, controller];
-
-  const target = controller.userData.target;
-
-  const ikSolver = new THREE.CCDIKSolver({
-    bones: chain,
-    target: target,
-  });
-
-  // Actualizar el IK en cada frame
-  const updateIK = () => {
-    ikSolver.solve();
+  const ikChain = {
+    controller: selectedBone,
+    chain: selectedBone.parent,
+    anchor: selectedBone.parent.parent
   };
 
-  animateCallbacks.push(updateIK);
+  if (!ikChain.anchor || !(ikChain.anchor instanceof THREE.Bone)) {
+    console.error("El abuelo del hueso seleccionado debe ser un hueso válido.");
+    return;
+  }
+
+  const ikHelper = new THREE.Group();
+  const createMesh = (color, position) => {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), new THREE.MeshBasicMaterial({ color }));
+    mesh.position.copy(position);
+    ikHelper.name = 'Controllers';
+    return mesh;
+  };
+
+  const controllerMesh = createMesh(0xff0000, ikChain.controller.getWorldPosition(new THREE.Vector3()));
+  const chainMesh = createMesh(0x00ff00, ikChain.chain.getWorldPosition(new THREE.Vector3()));
+  const anchorMesh = createMesh(0x0000ff, ikChain.anchor.getWorldPosition(new THREE.Vector3()));
+
+  ikHelper.add(controllerMesh, chainMesh, anchorMesh);
+  scene.add(ikHelper);
+
+  const initialControllerChainDistance = controllerMesh.position.distanceTo(chainMesh.position);
+  const initialChainAnchorDistance = chainMesh.position.distanceTo(anchorMesh.position);
+  const minimumDistance = 0.1;
+  const globalControllerQuaternion = new THREE.Quaternion();
+  ikChain.controller.getWorldQuaternion(globalControllerQuaternion);
+
+  function solveIK() {
+    const controllerPosition = controllerMesh.position;
+    const chainPosition = chainMesh.position;
+    const anchorPosition = anchorMesh.position;
+
+    const controllerToChain = controllerPosition.clone().sub(chainPosition).length();
+    const chainToAnchor = chainPosition.clone().sub(anchorPosition).length();
+    const controllerToAnchor = controllerPosition.clone().sub(anchorPosition).length();
+
+    const boneElasticity = document.getElementById('boneElasticity').checked;
+    const minimumElasticDistance = initialControllerChainDistance + initialChainAnchorDistance;
+
+    if (boneElasticity && controllerToAnchor > minimumElasticDistance) {
+      const midpoint = controllerPosition.clone().add(anchorPosition).multiplyScalar(0.5);
+      chainPosition.copy(midpoint);
+    } else {
+      if (controllerToChain < minimumDistance) {
+        const direction = chainPosition.clone().sub(controllerPosition).normalize();
+        chainPosition.copy(controllerPosition.clone().add(direction.multiplyScalar(minimumDistance)));
+      } else {
+        chainPosition.copy(controllerPosition.clone().add(chainPosition.clone().sub(controllerPosition).normalize().multiplyScalar(initialControllerChainDistance)));
+      }
+
+      if (chainToAnchor < minimumDistance) {
+        const direction = anchorPosition.clone().sub(chainPosition).normalize();
+        chainPosition.copy(anchorPosition.clone().add(direction.multiplyScalar(-minimumDistance)));
+      } else {
+        chainPosition.copy(anchorPosition.clone().add(anchorPosition.clone().sub(chainPosition).normalize().multiplyScalar(-initialChainAnchorDistance)));
+      }
+    }
+
+    ikHelper.children[1].position.copy(chainPosition);
+    ikHelper.children[0].position.copy(controllerPosition);
+    ikHelper.children[2].position.copy(anchorPosition);
+
+    ikChain.anchor.position.copy(anchorMesh.getWorldPosition(new THREE.Vector3()));
+
+    const directionToChain = chainPosition.clone().sub(anchorPosition).normalize();
+    const anchorRotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), directionToChain);
+    ikChain.anchor.quaternion.copy(anchorRotation);
+
+    const directionToController = controllerPosition.clone().sub(chainPosition).normalize();
+    const chainRotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), directionToController);
+
+    const adjustedRotation = chainRotation.clone().multiply(ikChain.anchor.getWorldQuaternion(new THREE.Quaternion()).invert());
+    ikChain.chain.quaternion.copy(adjustedRotation);
+
+    const checkboxLockController = document.getElementById('lockControllerBone');
+    if (!checkboxLockController.checked) {
+      const controllerWorldQuaternion = new THREE.Quaternion();
+      controllerMesh.getWorldQuaternion(controllerWorldQuaternion);
+
+      const localQuaternion = controllerWorldQuaternion.clone().multiply(ikChain.controller.parent.getWorldQuaternion(new THREE.Quaternion()).invert());
+      ikChain.controller.quaternion.copy(localQuaternion);
+    }
+
+    const scaleFactorY = Math.max(1, chainToAnchor / initialChainAnchorDistance);
+    const scaleFactor = 1 / Math.sqrt(scaleFactorY);
+    ikChain.anchor.scale.set(scaleFactor, scaleFactorY, scaleFactor);
+  }
+
+  setInterval(solveIK, 1);
 }
 
 // Controls
@@ -528,7 +657,8 @@ function savePose() {
 
   const pose = {
     name: poseName,
-    bones: []
+    bones: [],
+    controllers: []
   };
 
   selectedObject.traverse((object) => {
@@ -542,9 +672,18 @@ function savePose() {
     }
   });
 
+  const controllerMeshes = scene.getObjectByName('Controllers');
+  if (controllerMeshes) {
+    controllerMeshes.children.forEach(controllerMesh => {
+      pose.controllers.push({
+        name: controllerMesh.name,
+        position: controllerMesh.position.toArray()
+      });
+    });
+  }
+
   storedPoses.push(pose);
   savePosesToLocalStorage();
-
   createPoseButton(poseName);
 }
 function applyPose(poseName) {
@@ -568,6 +707,17 @@ function applyPose(poseName) {
         }
       }
     });
+
+    // Aplicar las posiciones de los controladores
+    const controllerMeshes = scene.getObjectByName('Controllers');
+    if (controllerMeshes) {
+      pose.controllers.forEach(controller => {
+        const controllerMesh = controllerMeshes.getObjectByName(controller.name);
+        if (controllerMesh) {
+          controllerMesh.position.fromArray(controller.position);
+        }
+      });
+    }
   }
 }
 function createPoseButton(poseName) {
@@ -602,30 +752,29 @@ function renderStoredPoses() {
 
 // Rename Bone Chain
 function fixBoneChain() {
-  const selectedBone = getSelectedObject(scene);
+  const selectedObject = getSelectedObject(scene);
 
-  if (!selectedBone || !(selectedBone instanceof THREE.Bone)) {
-    alert('No bone selected or selected object is not a bone');
+  if (!selectedObject) {
+    alert('No object selected.');
     return;
   }
 
   let counter = 1;
 
-  selectedBone.traverse((bone) => {
-    if (bone instanceof THREE.Bone) {
-      if (bone !== selectedBone) {
-        bone.name = `${selectedBone.name} ${counter}`;
-        counter++;
-      }
+  selectedObject.traverse((child) => {
+    if (child instanceof THREE.Bone) {
+      child.name = `Bone ${counter}`;
+      counter++;
     }
   });
 
-  console.log(`Bone chain fixed starting from: ${selectedBone.name}`);
-  selectedBone.traverse((bone) => {
-    if (bone instanceof THREE.Bone) {
-      console.log(`Bone name: ${bone.name}`);
+  console.log(`Bone chain fixed within object: ${selectedObject.name}`);
+  selectedObject.traverse((child) => {
+    if (child instanceof THREE.Bone) {
+      console.log(`Bone name: ${child.name}`);
     }
   });
+  updateOutliner()
 }
 
 // Delete Saved Poses
@@ -650,3 +799,6 @@ function deleteSavedPoses() {
     console.log('Deletion canceled.');
   }
 }
+
+
+/* Tests */

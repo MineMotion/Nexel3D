@@ -40,6 +40,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+  const zoomInButton = document.getElementById("zoomIn");
+const zoomOutButton = document.getElementById("zoomOut");
+const timelineFrames = document.querySelectorAll(".frame");
+
+let borderWidth = 6;
+
+zoomInButton.addEventListener("click", () => {
+  if (borderWidth < 30) borderWidth++;
+  updateZoom();
+});
+
+zoomOutButton.addEventListener("click", () => {
+  if (borderWidth > 1) borderWidth--;
+  updateZoom();
+});
+
+function updateZoom() {
+  timelineFrames.forEach(frame => {
+    frame.style.borderRight = `${borderWidth}px solid var(--bg-primary)`;
+  });
+}
+
   function updateKeyframeButtonText() {
   const keyframeButton = document.getElementById('keyframeButton');
   const selectedObject = getSelectedObject();
@@ -135,16 +157,14 @@ copyButton.addEventListener('click', () => {
   }
 });
 
-  function getSelectedObject() {
-  let selectedObject = null;
-  
+  function getSelectedObjects() {
+  const selectedObjects = [];
   scene.traverse((object) => {
     if (object.userData.SelectedObject) {
-      selectedObject = object;
+      selectedObjects.push(object);
     }
   });
-
-  return selectedObject;
+  return selectedObjects;
 }
 
   function clearKeyframes() {
@@ -347,11 +367,11 @@ function detectObjectChanges() {
   const selectedObjects = getSelectedObjects();
   if (selectedObjects.length === 0) return;
 
-  selectedObjects.forEach((selectedObject) => {
+  selectedObjects.forEach(selectedObject => {
     if (!lastPosition || !lastRotation || !lastScale) {
-      lastPosition = selectedObject.position.clone();
-      lastRotation = selectedObject.rotation.clone();
-      lastScale = selectedObject.scale.clone();
+      lastPosition = lastPosition || selectedObject.position.clone();
+      lastRotation = lastRotation || selectedObject.rotation.clone();
+      lastScale = lastScale || selectedObject.scale.clone();
     }
 
     const hasPositionChanged = !selectedObject.position.equals(lastPosition);
@@ -383,6 +403,16 @@ function addKeyframeIfChanged(selectedObject) {
   }
 }
 
+function getSelectedObjects() {
+  const selectedObjects = [];
+  scene.traverse((object) => {
+    if (object.userData.SelectedObject) {
+      selectedObjects.push(object);
+    }
+  });
+  return selectedObjects;
+}
+
 function monitorObjectChanges() {
   requestAnimationFrame(() => {
     detectObjectChanges();
@@ -392,7 +422,8 @@ function monitorObjectChanges() {
 
 monitorObjectChanges();
 renderKeyframes();
-addFrameNumbers()
+addFrameNumbers();
+
 });
 
-
+/* Funciones de exportacion de Keyframes */

@@ -28,6 +28,7 @@ function fastImport() {
           url,
           (object) => {
             scene.add(object);
+            addAutoBone();
           },
           undefined,
           (error) => console.error('Error cargando FBX:', error)
@@ -41,6 +42,7 @@ function fastImport() {
           url,
           (gltf) => {
             scene.add(gltf.scene);
+            addAutoBone();
           },
           undefined,
           (error) => console.error('Error cargando GLTF/GLB:', error)
@@ -55,6 +57,7 @@ function fastImport() {
             const material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
             const mesh = new THREE.Mesh(geometry, material);
             scene.add(mesh);
+            addAutoBone();
           },
           undefined,
           (error) => console.error('Error cargando STL:', error)
@@ -901,3 +904,13 @@ addCube();
 
 
 /* Test */
+function loadModel() {
+  const modelData = document.querySelector('model[name="cubo"]').textContent.trim();
+  const loader = new THREE.OBJLoader();
+  const blob = new Blob([modelData], { type: 'text/plain' });
+  const objectURL = URL.createObjectURL(blob);
+
+  loader.load(objectURL, object => scene.add(object));
+}
+
+loadModel();

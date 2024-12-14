@@ -331,3 +331,13 @@ function activateRenderedMode() {
 function deactivateRenderedMode() {
   renderer.shadowMap.enabled = false;
 }
+
+
+window.onload = function() {
+  setTimeout(() => {
+    document.getElementById('textureShading').click();
+  }, 5000);
+  loadPresets();
+  loadProjects();
+  loadAddonsFromLocalStorage();
+};

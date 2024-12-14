@@ -622,52 +622,285 @@ function changeCamera() {
   }
 }
 
-/* Save Projects */
-function saveProject(projectName) {
-  const dbRequest = indexedDB.open("NexelProjectsDB", 1);
-
-  dbRequest.onupgradeneeded = (event) => {
-    const db = event.target.result;
-    if (!db.objectStoreNames.contains("projects")) {
-      db.createObjectStore("projects", { keyPath: "id", autoIncrement: true });
+/* Save Presets */
+function presetSel() {
+  const selectedObjects = [];
+  scene.traverse((object) => {
+    if (object.userData.SelectedObject) {
+      selectedObjects.push(object);
     }
+  });
+
+  if (selectedObjects.length === 0) return;
+
+  const defaultName = selectedObjects[0]?.name || 'NewPreset';
+  const presetName = prompt('Enter a name for the selected objects:', defaultName);
+  if (!presetName) return;
+
+  let savedPresets = JSON.parse(localStorage.getItem('presets')) || [];
+
+  const existingPresetIndex = savedPresets.findIndex(preset => preset.name === presetName);
+  if (existingPresetIndex !== -1) {
+    const confirmOverwrite = confirm('A preset with this name already exists. Do you want to overwrite it?');
+    if (!confirmOverwrite) return;
+
+    const existingDiv = document.querySelector(`#presetsContainer .menu-item[data-name="${presetName}"]`);
+    if (existingDiv) existingDiv.remove();
+    savedPresets.splice(existingPresetIndex, 1);
+  }
+
+  const presetData = selectedObjects.map((object) => {
+    const objectData = object.toJSON();
+    objectData.userData = object.userData;
+    return objectData;
+  });
+
+  savedPresets.push({ name: presetName, data: presetData });
+  localStorage.setItem('presets', JSON.stringify(savedPresets));
+
+  const presetMenu = document.getElementById('presetsContainer');
+  if (!presetMenu) return;
+
+  const presetDiv = document.createElement('div');
+  presetDiv.classList.add('menu-item');
+  presetDiv.style.margin = '5px';
+  presetDiv.dataset.name = presetName;
+
+  const iconImage = document.createElement('img');
+  iconImage.src = 'icons/preset.svg';
+  iconImage.alt = 'Preset Icon';
+  iconImage.style.width = '20px';
+  iconImage.style.marginRight = '5px';
+
+  const presetText = document.createElement('span');
+  presetText.textContent = presetName;
+
+  presetDiv.appendChild(iconImage);
+  presetDiv.appendChild(presetText);
+
+  presetDiv.onclick = () => {
+    loadPreset(presetData);
   };
 
-  dbRequest.onsuccess = (event) => {
-    const db = event.target.result;
-    const transaction = db.transaction("projects", "readwrite");
-    const store = transaction.objectStore("projects");
+  let timer;
+  presetDiv.addEventListener('mousedown', () => {
+    timer = setTimeout(() => {
+      const confirmDelete = confirm('Do you want to delete this preset?');
+      if (confirmDelete) {
+        savedPresets = savedPresets.filter((p) => p.name !== presetName);
+        localStorage.setItem('presets', JSON.stringify(savedPresets));
+        presetMenu.removeChild(presetDiv);
+      }
+    }, 300);
+  });
 
-    const objectsToSave = [];
-    scene.traverse((object) => {
-      if (object.isMesh || object.isObject3D) {
-        objectsToSave.push(object.toJSON());
+  presetDiv.addEventListener('mouseup', () => {
+    clearTimeout(timer);
+  });
+
+  presetMenu.appendChild(presetDiv);
+}
+
+function loadPresets() {
+  const presetsContainer = document.getElementById('presetsContainer');
+  const savedPresets = JSON.parse(localStorage.getItem('presets')) || [];
+
+  presetsContainer.innerHTML = '';
+
+  savedPresets.forEach((preset) => {
+    const presetDiv = document.createElement('div');
+    presetDiv.classList.add('menu-item');
+    presetDiv.style.margin = '5px';
+    presetDiv.dataset.name = preset.name;
+
+    const iconImage = document.createElement('img');
+    iconImage.src = 'icons/preset.svg';
+    iconImage.alt = 'Preset Icon';
+    iconImage.style.width = '20px';
+    iconImage.style.marginRight = '5px';
+
+    const presetText = document.createElement('span');
+    presetText.textContent = preset.name;
+
+    presetDiv.appendChild(iconImage);
+    presetDiv.appendChild(presetText);
+
+    presetDiv.onclick = () => {
+      loadPreset(preset.data);
+    };
+
+    let timer;
+    presetDiv.addEventListener('mousedown', () => {
+      timer = setTimeout(() => {
+        const confirmDelete = confirm('Do you want to delete this preset?');
+        if (confirmDelete) {
+          savedPresets = savedPresets.filter((p) => p.name !== preset.name);
+          localStorage.setItem('presets', JSON.stringify(savedPresets));
+          presetsContainer.removeChild(presetDiv);
+        }
+      }, 300);
+    });
+
+    presetDiv.addEventListener('mouseup', () => {
+      clearTimeout(timer);
+    });
+
+    presetsContainer.appendChild(presetDiv);
+  });
+}
+
+function loadPreset(presetData) {
+  presetData.forEach((json) => {
+    const object = new THREE.ObjectLoader().parse(json);
+    object.traverse((child) => {
+      if (child.material) {
+        if (child.material.map) child.material.map.needsUpdate = true;
+        if (child.material.normalMap) child.material.normalMap.needsUpdate = true;
+        if (child.material.emissiveMap) child.material.emissiveMap.needsUpdate = true;
       }
     });
 
-    const projectData = {
-      name: projectName,
-      createdAt: new Date().toISOString(),
-      objects: objectsToSave,
+    scene.add(object);
+  });
+
+  updateOutliner();
+}
+
+function deletePresets() {
+  const presetsContainer = document.getElementById('presetsContainer');
+  let savedPresets = JSON.parse(localStorage.getItem('presets')) || [];
+
+  presetsContainer.innerHTML = '';
+
+  savedPresets.forEach((preset) => {
+    const presetDiv = document.createElement('div');
+    presetDiv.classList.add('menu-item');
+    presetDiv.style.margin = '5px';
+    presetDiv.dataset.name = preset.name;
+    presetDiv.style.position = 'relative'; // Asegura que el contenedor esté en el flujo normal
+
+    const iconImage = document.createElement('img');
+    iconImage.src = 'icons/preset.svg';
+    iconImage.alt = 'Preset Icon';
+    iconImage.style.width = '20px';
+    iconImage.style.marginRight = '5px';
+
+    const presetText = document.createElement('span');
+    presetText.textContent = preset.name;
+
+    const deleteIcon = document.createElement('img');
+    deleteIcon.src = 'icons/trash.svg';
+    deleteIcon.alt = 'Delete Icon';
+    deleteIcon.style.width = '15px';
+    deleteIcon.style.marginLeft = '10px';
+    deleteIcon.style.cursor = 'pointer';
+    deleteIcon.classList.add('alert'); // Añadiendo la clase .alert
+
+    deleteIcon.onclick = () => {
+      const confirmDelete = confirm('Are you sure you want to delete this preset?');
+      if (confirmDelete) {
+        savedPresets = savedPresets.filter((p) => p.name !== preset.name);
+        localStorage.setItem('presets', JSON.stringify(savedPresets));
+        presetsContainer.removeChild(presetDiv);
+      }
     };
 
-    store.add(projectData);
+    presetDiv.appendChild(iconImage);
+    presetDiv.appendChild(presetText);
+    presetDiv.appendChild(deleteIcon);
 
-    transaction.oncomplete = () => {
-      console.log(`Project "${projectName}" saved successfully.`);
+    let timer;
+    presetDiv.addEventListener('mousedown', () => {
+      timer = setTimeout(() => {
+        const confirmDelete = confirm('Do you want to delete this preset?');
+        if (confirmDelete) {
+          savedPresets = savedPresets.filter((p) => p.name !== preset.name);
+          localStorage.setItem('presets', JSON.stringify(savedPresets));
+          presetsContainer.removeChild(presetDiv);
+        }
+      }, 300);
+    });
 
-      const addMenu = document.getElementById("addMenu");
-      const projectElement = document.createElement("div");
-      projectElement.textContent = projectName;
-      addMenu.appendChild(projectElement);
+    presetDiv.addEventListener('mouseup', () => {
+      clearTimeout(timer);
+    });
+
+    presetDiv.onclick = () => {
+      loadPreset(preset.data);
     };
 
-    transaction.onerror = (err) => {
-      console.error("Error saving project: ", err);
-    };
+    presetsContainer.appendChild(presetDiv);
+  });
+}
+
+/* Save Projects */
+function saveProject() {
+  const selectedObjects = [];
+  scene.traverse((object) => {
+    if (object.userData.SelectedObject) { // Solo seleccionamos los objetos marcados como seleccionados
+      selectedObjects.push(object);
+    }
+  });
+
+  if (selectedObjects.length === 0) return;
+
+  const projectName = prompt('Enter a name for the project:');
+  if (!projectName) return;
+
+  const projectsContainer = document.getElementById('projectsContainer');
+  if (!projectsContainer) return;
+
+  const projectData = selectedObjects.map((object) => {
+    return object.toJSON();
+  });
+
+  let savedProjects = JSON.parse(localStorage.getItem('projects')) || [];
+  savedProjects.push({ name: projectName, data: projectData });
+  localStorage.setItem('projects', JSON.stringify(savedProjects));
+
+  const projectButton = document.createElement('button');
+  projectButton.textContent = projectName;
+  projectButton.style.margin = '5px';
+  projectButton.onclick = () => {
+    loadProject(projectData);
   };
 
-  dbRequest.onerror = (err) => {
-    console.error("Error opening IndexedDB: ", err);
-  };
+  projectsContainer.appendChild(projectButton);
+}
+function loadProjects() {
+  const projectsContainer = document.getElementById('projectsContainer');
+  const savedProjects = JSON.parse(localStorage.getItem('projects')) || [];
+
+  savedProjects.forEach((project) => {
+    const projectButton = document.createElement('button');
+    projectButton.textContent = project.name;
+    projectButton.style.margin = '5px';
+    projectButton.onclick = () => {
+      loadProject(project.data);
+    };
+
+    projectsContainer.appendChild(projectButton);
+  });
+}
+function loadProject(projectData) {
+  projectData.forEach((json) => {
+    const object = new THREE.ObjectLoader().parse(json);
+    object.traverse((child) => {
+      if (child.material) {
+        if (child.material.map) child.material.map.needsUpdate = true;
+        if (child.material.normalMap) child.material.normalMap.needsUpdate = true;
+        if (child.material.emissiveMap) child.material.emissiveMap.needsUpdate = true;
+      }
+    });
+    scene.add(object);
+  });
+
+  updateOutliner();
+}
+function deleteProjects() {
+  localStorage.removeItem('projects');
+  const projectsContainer = document.getElementById('projectsContainer');
+  while (projectsContainer.firstChild) {
+    projectsContainer.removeChild(projectsContainer.firstChild);
+  }
 }

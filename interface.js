@@ -50,6 +50,74 @@ document.querySelectorAll('button').forEach(button => {
   }
 });
 
+/* Timeline */
+function showTimeline() {
+  const timeline = document.getElementById('animationMode');
+
+  if (!timeline) {
+    console.warn('Elemento #animationMode no encontrado.');
+    return;
+  }
+
+  const isVisible = timeline.style.display !== 'none';
+
+  if (isVisible) {
+    timeline.style.display = 'none';
+  } else {
+    timeline.style.display = 'block';
+  }
+}
+
+/* Buttons */
+function toggleTransformControls() {
+  const controls = document.querySelector('.transformControls');
+  const button = document.querySelector('#transformButtons');
+  const children = controls.children;
+
+  if (children[1].style.display !== 'none') {
+    Array.from(children).forEach((child, index) => {
+      if (index !== 0) {
+        child.style.display = 'none';
+      }
+    });
+    button.style.transform = 'rotate(90deg)';
+    button.style.right = '2px';
+  } else {
+    Array.from(children).forEach((child, index) => {
+      if (index !== 0) {
+        child.style.display = '';
+      }
+    });
+    button.style.transform = 'rotate(0deg)';
+    button.style.right = '';
+  }
+}
+function toggleActionButtons() {
+  const controls = document.querySelector('.actionBar');
+  const button = document.querySelector('#actionButtons');
+  const children = controls.children;
+
+  if (children[1].style.display !== 'none') {
+    Array.from(children).forEach((child, index) => {
+      if (index !== 0) {
+        child.style.display = 'none';
+      }
+    });
+    button.style.transform = 'rotate(90deg)';
+    button.style.right = '2px';
+  } else {
+    Array.from(children).forEach((child, index) => {
+      if (index !== 0) {
+        child.style.display = '';
+      }
+    });
+    button.style.transform = 'rotate(0deg)';
+    button.style.right = '';
+  }
+}
+
+
+
 /* Seleccion de Modo */
 function changeMode() {
   const selectedMode = document.getElementById('modeDropdown').value;
@@ -64,6 +132,29 @@ function changeMode() {
   if (selectedContainer) {
     selectedContainer.style.display = 'block';
   }
+}
+
+let isDynamic = true;
+let currentShape = "box";
+
+function toggleRigidBodyType() {
+  isDynamic = !isDynamic;
+  const button = document.getElementById("rigidTypeBtn");
+  button.textContent = isDynamic ? "Dynamic" : "Static";
+}
+
+function toggleShape() {
+  const shapes = ["box", "sphere", "mesh"];
+  const currentIndex = shapes.indexOf(currentShape);
+  const nextIndex = (currentIndex + 1) % shapes.length;
+  currentShape = shapes[nextIndex];
+
+  const button = document.getElementById("rigidShapeBtn");
+  button.textContent = capitalizeFirstLetter(currentShape);
+}
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 function toggleActionBar() {
@@ -149,19 +240,21 @@ document.getElementById('togglePreview').addEventListener('change', function(eve
 /* Object Tools */
 const objectToolsButton = document.getElementById('objectTools');
 let currentMenu = null;
+
 objectToolsButton.addEventListener('click', () => {
-  const selectedObject = scene.children.find(child => child.userData.SelectedObject);
+  const selectedObject = getSelectedObject();
   if (selectedObject) {
     if (currentMenu && currentMenu.style.display === 'block') {
-      currentMenu.style.display = 'none'; // Oculta el menú si ya está visible
+      currentMenu.style.display = 'none';
       currentMenu = null;
     } else {
-      showObjectTools(selectedObject); // Muestra el menú correspondiente
+      showObjectTools(selectedObject);
     }
   }
 });
+
 function updateObjectToolsButton() {
-  const selectedObject = scene.children.find(child => child.userData.SelectedObject);
+  const selectedObject = getSelectedObject();
   const toolMenus = document.querySelectorAll('.toolMenu');
 
   if (selectedObject) {
@@ -172,6 +265,7 @@ function updateObjectToolsButton() {
     currentMenu = null;
   }
 }
+
 function showObjectTools(selectedObject) {
   const menuName = selectedObject.name || "Unnamed";
   const toolMenus = document.querySelectorAll('.toolMenu');
@@ -195,8 +289,9 @@ function showObjectTools(selectedObject) {
     document.querySelector('#cameraTools h4').textContent = `Camera: ${menuName}`;
   }
 }
+
 function handleSelectionChange() {
-  const selectedObject = scene.children.find(child => child.userData.SelectedObject);
+  const selectedObject = getSelectedObject();
   const toolMenus = document.querySelectorAll('.toolMenu');
 
   if (!selectedObject) {
@@ -206,6 +301,17 @@ function handleSelectionChange() {
     showObjectTools(selectedObject);
   }
 }
+
+function getSelectedObject() {
+  const selectedObjects = [];
+  scene.traverse(object => {
+    if (object.userData.SelectedObject) {
+      selectedObjects.push(object);
+    }
+  });
+  return selectedObjects.length > 0 ? selectedObjects[0] : null;
+}
+
 scene.traverse(object => {
   object.addEventListener('selectionChanged', handleSelectionChange);
 });
@@ -582,34 +688,6 @@ function addLightIcon() {
     console.error('Error al añador icono: ', error);
   });
 }
-function selectLight(light) {
-  deselectObject()
-  if (light) {
-    light.userData.SelectedObject = true;
-    if (transformControls) {
-      transformControls.attach(light);
-    }
-
-    console.log('Luz seleccionada:', light);
-  }
-}
-window.addEventListener('touchstart', function(event) {
-  const mouse = new THREE.Vector2();
-  mouse.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
-
-  raycaster.setFromCamera(mouse, camera);
-
-  const intersects = raycaster.intersectObjects(scene.children, true);
-
-  if (intersects.length > 0) {
-    const clickedObject = intersects[0].object;
-    if (clickedObject instanceof THREE.Sprite && clickedObject.userData.light) {
-      clickedObject.onClick();
-    }
-  }
-});
-
 
 
 let cameraRenderer, cameraViewport, cameraRenderTarget, viewportCamera;

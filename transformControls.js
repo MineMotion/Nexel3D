@@ -34,45 +34,60 @@ function getSelectedObject() {
 }
 
 /* Transform Buttons */
-document.getElementById('pos').addEventListener('click', function() {
-  transformControls.setMode('translate');
-  updateAttachment();
-  if (transformControls.mode === 'translate') {
-    this.style.backgroundColor = 'var(--accent-secondary)';
-  }
-});
+let selectedObject = null;
 
-transformControls.addEventListener('change', function() {
-  if (transformControls.mode !== 'translate') {
-    document.getElementById('pos').style.backgroundColor = '';
+function setModeAndSelect(mode, buttonId) {
+  transformControls.setMode(mode);
+  document.getElementById(buttonId).style.backgroundColor = transformControls.mode === mode ? 'var(--accent-secondary)' : '';
+
+  if (selectedObject) {
+    scene.traverse((object) => {
+      object.userData.SelectedObject = false;
+    });
+
+    selectedObject.userData.SelectedObject = true;
+    transformControls.attach(selectedObject);
+    updateOutliner();
   }
+}
+
+document.getElementById('pos').addEventListener('click', function() {
+  setModeAndSelect('translate', 'pos');
 });
 
 document.getElementById('rot').addEventListener('click', function() {
-  transformControls.setMode('rotate');
-  updateAttachment();
-  if (transformControls.mode === 'rotate') {
-    this.style.backgroundColor = 'var(--accent-secondary)';
-  }
-});
-
-transformControls.addEventListener('change', function() {
-  if (transformControls.mode !== 'rotate') {
-    document.getElementById('rot').style.backgroundColor = '';
-  }
+  setModeAndSelect('rotate', 'rot');
 });
 
 document.getElementById('scl').addEventListener('click', function() {
-  transformControls.setMode('scale');
-  updateAttachment();
-  if (transformControls.mode === 'scale') {
-    this.style.backgroundColor = 'var(--accent-secondary)';
-  }
+  setModeAndSelect('scale', 'scl');
 });
 
 transformControls.addEventListener('change', function() {
-  if (transformControls.mode !== 'scale') {
-    document.getElementById('scl').style.backgroundColor = '';
+  ['pos', 'rot', 'scl'].forEach((id) => {
+    const button = document.getElementById(id);
+    if (transformControls.mode !== id) {
+      button.style.backgroundColor = '';
+    } else {
+      button.style.backgroundColor = 'var(--accent-secondary)';
+    }
+  });
+});
+
+scene.addEventListener('click', function(event) {
+  const intersects = raycaster.intersectObjects(scene.children, true);
+  if (intersects.length > 0) {
+    const newSelection = intersects[0].object;
+
+    if (selectedObject) {
+      selectedObject.userData.SelectedObject = false;
+    }
+
+    selectedObject = newSelection;
+    selectedObject.userData.SelectedObject = true;
+
+    transformControls.attach(selectedObject);
+    updateOutliner();
   }
 });
 

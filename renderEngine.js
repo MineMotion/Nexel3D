@@ -139,54 +139,100 @@ document.getElementById('saveRender').addEventListener('click', saveRenderedImag
 
 
 /* Render Video */
-function renderVideo() {
-  const capturer = new CCapture({ format: 'webm', framerate: 30 });
-  let currentFrame = 0;
-  const totalFrames = 30;
+// Vertex Shader
+const vertexShader = `
+    varying vec3 vPosition;
+    varying vec3 vNormal;
 
-  scene.traverse((object) => {
-    if (
-      object instanceof THREE.GridHelper ||
-      object instanceof THREE.Bone ||
-      object instanceof THREE.AxesHelper ||
-      object instanceof THREE.TransformControls ||
-      object.userData.id === 'bone' ||
-      object.userData.id === 'exclude'
-    ) {
-      object.visible = false;
+    void main() {
+        vPosition = position;
+        vNormal = normal;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
+
+// Fragment Shader
+const fragmentShader = `
+    uniform sampler2D depthMap;
+    varying vec3 vPosition;
+    varying vec3 vNormal;
+    uniform vec2 resolution;
+
+    void main() {
+        float occlusion = 0.0;
+
+        // Mapa de profundidad para calcular proximidad
+        vec4 depthInfo = texture2D(depthMap, gl_FragCoord.xy / resolution);
+        float depth = depthInfo.r;
+
+        // Calcular oclusión por proximidad (más oscuro si está cerca de un objeto)
+        if (depth < 0.5) {
+            occlusion += 0.5;
+        }
+
+        // Detectar bordes cercanos a -90 grados con la normal
+        float angle = abs(dot(vNormal, vec3(0.0, -1.0, 0.0))); // Normal comparada con el eje Y negativo
+        if (angle > 0.9) {
+            occlusion += 0.5; // Aumentar oclusión en bordes cercanos a -90 grados
+        }
+
+        // Establecer el color verde y modificar la saturación dependiendo de la oclusión
+        vec3 color = vec3(0.0, 1.0, 0.0); // Verde
+        color *= (1.0 - occlusion); // Oscurecer el verde dependiendo de la oclusión
+
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
+
+// Crear el material con el shader
+const material = new THREE.ShaderMaterial({
+  vertexShader: vertexShader,
+  fragmentShader: fragmentShader,
+  uniforms: {
+    depthMap: { value: null }, // El mapa de profundidad será asignado aquí
+    resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+  }
+});
+
+// Crear el render target para la captura de profundidad
+const width = window.innerWidth;
+const height = window.innerHeight;
+const depthRenderTarget = new THREE.WebGLRenderTarget(width, height, {
+  format: THREE.DepthFormat,
+  type: THREE.FloatType
+});
+
+// Función para actualizar el mapa de profundidad y aplicar el shader
+function applyAmbientOcclusion(scene, renderer, camera) {
+  // Renderizar la escena en el render target para obtener el mapa de profundidad
+  renderer.setRenderTarget(depthRenderTarget);
+  renderer.render(scene, camera);
+
+  // Volver a configurar el render target a null para renderizar en la pantalla
+  renderer.setRenderTarget(null);
+
+  // Asignar el mapa de profundidad al material
+  material.uniforms.depthMap.value = depthRenderTarget.texture;
+}
+
+// Función para aplicar el material con oclusión a los objetos
+function applyShaderToObjects(scene) {
+  scene.traverse(function(object) {
+    if (object.isMesh) {
+      object.material = material;
     }
   });
-
-  capturer.start();
-
-  function renderNextFrame() {
-    if (currentFrame > totalFrames) {
-      capturer.stop();
-      capturer.save((blob) => {
-        const videoURL = URL.createObjectURL(blob);
-        const videoElement = document.createElement('video');
-        videoElement.src = videoURL;
-        videoElement.controls = true;
-
-        const renderedImageContainer = document.getElementById('renderedImage');
-        renderedImageContainer.innerHTML = '';
-        renderedImageContainer.appendChild(videoElement);
-      });
-
-      scene.traverse((object) => {
-        object.visible = true;
-      });
-
-      return;
-    }
-
-    timeline.setFrame(currentFrame); // Asegúrate de tener este método implementado
-    renderer.render(scene, camera);
-    capturer.capture(renderer.domElement);
-    currentFrame++;
-
-    requestAnimationFrame(renderNextFrame);
-  }
-
-  renderNextFrame();
 }
+
+// Llamar a estas funciones en tu ciclo de renderizado
+// Asegúrate de llamar a `applyAmbientOcclusion` antes de renderizar la escena
+// y `applyShaderToObjects` para aplicar el material con oclusión a los objetos.
+
+function render() {
+  applyAmbientOcclusion(scene, renderer, camera);
+  applyShaderToObjects(scene);
+  renderer.render(scene, camera);
+}
+
+// Suponiendo que ya tienes configurado tu ciclo de renderizado de Three.js,
+// solo necesitarás llamar a la función `render()` en cada frame.

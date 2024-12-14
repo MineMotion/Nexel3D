@@ -32,12 +32,7 @@ function init() {
   scene.userData.exclude = true;
   
   // Color de fondo
-  scene.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--scene-bg').trim());
-  
-  // Textura de fondo
-  // const textureLoader = new THREE.TextureLoader();
-  // const backgroundTexture = textureLoader.load('img');
-  // scene.background = backgroundTexture;
+  scene.background = null;
   
   // Grid
   gridHelper = new THREE.GridHelper(30, 30);
@@ -65,8 +60,8 @@ if (positions[i + 2] === 0) {
 
   // Renderizador
   
-  renderer = new THREE.WebGLRenderer({ antialias: true});
-  renderer.shadowMap.enabled = true;
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true});
+  renderer.shadowMap.enabled = false;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   
 
@@ -95,29 +90,20 @@ if (positions[i + 2] === 0) {
   // Eventos de ventana
   window.addEventListener('resize', onWindowResize, false);
   
-  
-  
   document.addEventListener('DOMContentLoaded', () => {
   const sensibilityInput = document.getElementById('sensibility');
-
-  // Recuperar la sensibilidad guardada
   const savedSensitivity = localStorage.getItem('rotateSensitivity');
   if (savedSensitivity) {
     controls.rotateSpeed = parseFloat(savedSensitivity);
     sensibilityInput.value = savedSensitivity;
   }
-
-  // Actualizar la sensibilidad al cambiar el valor
+  
   sensibilityInput.addEventListener('input', function() {
     const sensitivity = parseFloat(this.value);
     controls.rotateSpeed = sensitivity;
     localStorage.setItem('rotateSensitivity', sensitivity);
   });
 });
-  
-  
-  
-  
 }
 
 function onWindowResize() {
